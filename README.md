@@ -26,9 +26,9 @@ Syntax:
 (evaluate form env err-h)
 ```
 
-`form`  a valid Clojure form
-`env`   user-specified environment -- a collection of maps for value lookup
-`err-h` error handler (function that accepts error message and deals with it)
+* `form`  is a valid Clojure form
+* `env`   is user-specified environment -- a collection of maps for value lookup
+* `err-h` is error handler (function that accepts error message and deals with it)
 
 Clojure example:
 
