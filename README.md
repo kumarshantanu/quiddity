@@ -7,9 +7,9 @@ with limited forms using user-specified _environment_.
 
 ## Usage
 
-This library is not on Clojars yet.
+On Clojars: https://clojars.org/quiddity
 
-Leiningen dependency: `[quiddity "0.1.0-SNAPSHOT"]`
+Leiningen dependency: `[quiddity "0.1.0"]`
 
 Supported Clojure versions: 1.2, 1.3, 1.4, 1.5
 

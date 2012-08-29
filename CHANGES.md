@@ -1,6 +1,6 @@
 # Changes and TODO
 
-## 2012-August-?? / 0.1.0
+## 2012-August-30 / 0.1.0
 
 * S-Expression evaluation
 * Clojure and ClojureScript support
