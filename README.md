@@ -101,7 +101,7 @@ The following evaluators are provided in `quiddity.lib/all` (map):
 Clean older stuff if any (required for ClojureScript testing)
 
 ```
-$ lein dev clean
+lein dev clean
 ```
 
 Run the tests
