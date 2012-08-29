@@ -58,8 +58,8 @@ keywords as the keys. For example, `(foo 42)` will look for both `'foo` and
 ### Limitation
 
 Quiddity supports only limited forms in the S-expressions it evaluates. The
-following are not supported (note that shortcuts to special forms and macros
-eg. `'`, `#'`, `#(...)` etc. are automatically expanded by the reader):
+following are not supported (note that shortcuts to special forms eg. `'`, `#'`,
+`#(...)` etc. are automatically expanded by the reader):
 
 * Special forms
 * Macros
