@@ -118,9 +118,6 @@ lein all test  # test with all supported Clojure versions
 
 ### Building a JAR (and installing to local repo)
 
-Assuming the line `:hooks [leiningen.cljsbuild]` in `project.clj` is
-commented out:
-
 ```
 lein jar     # create the JAR file
 lein install # install JAR to local Maven repo
