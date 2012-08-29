@@ -11,6 +11,10 @@ This library is not on Clojars yet.
 
 Leiningen dependency: `[quiddity "0.1.0-SNAPSHOT"]`
 
+Supported Clojure versions: 1.2, 1.3, 1.4, 1.5
+
+Tested with lein-cljsbuild version: 0.2.6
+
 
 ### Evaluation
 
