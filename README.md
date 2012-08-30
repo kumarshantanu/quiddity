@@ -40,7 +40,7 @@ Clojure example:
 ClojureScript example:
 
 ```clojure
-(evaluate (read-string "(inc (dec (+ n 10)))") [{:+ + :inc inc :dec dec :n 20}]
+(evaluate (cljs.reader/read-string "(inc (dec (+ n 10)))") [{:+ + :inc inc :dec dec :n 20}]
           #(throw (js/Error %)))
 ```
 
