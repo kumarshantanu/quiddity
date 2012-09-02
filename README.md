@@ -64,6 +64,7 @@ following are not supported (note that shortcuts to special forms eg. `'`, `#'`,
 * Special forms
 * Macros
 * Destructuring
+* Classnames (they are treated as ordinary symbols)
 * Creating functions
 
 
