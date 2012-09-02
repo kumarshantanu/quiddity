@@ -6,6 +6,7 @@
 * Function declaration (both `fn` and `fn*`)
 * De-structuring (in `let` `for` `fn`)
 * More macros: `if-let` `when-let` `letfn` `cond` `condp` `case`
+* As much as listed here: http://clojure.org/macros
 
 ## 2012-August-30 / 0.1.0
 
