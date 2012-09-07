@@ -1,4 +1,4 @@
-(defproject quiddity "0.1.0"
+(defproject quiddity "0.2.0-SNAPSHOT"
   :description "An S-Expression evaluation library for Clojure and ClojureScript"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
