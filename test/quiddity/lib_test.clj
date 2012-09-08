@@ -32,6 +32,7 @@
                           (re-quote "No support for `def`, `var`, `binding`")
                           (es "(binding [*a* 2] 1)" lib/unsupported)) "binding"))
   (testing "creating functions"
+    ;; See 'creating anon fns' in quiddity.lib-jvm-test and quiddity-cljs-test
     (is (thrown-with-msg? RuntimeException
                           (re-quote "No support for creating functions")
                           (es "(fn [] true)" lib/unsupported)) "fn"))
@@ -101,6 +102,80 @@
     (is (= 'a (es "(quote a)" lib/special-forms)))
     (is (= '(1 a) (es "(quote (1 a))" lib/special-forms)))
     (is (= '(1 (2 a)) (es "(quote (1 (2 a)))" lib/special-forms)))))
+
+
+;; ---------- Destructuring helper ----------
+
+
+(defn ds
+  [local value]
+  (binding [core/*error-handler* throw-msg]
+    (lib/i-destructure [] local value)))
+
+
+(defn rds
+  [local value]
+  (ds (read-str local) value))
+
+
+(deftest test-destructuring
+  (testing "no destructuring"
+    (is (= {:a 10} (rds "a" 10)) "simple local var")
+    (is (= {}      (rds "_" 10)) "simple placeholder"))
+  (testing "seq destructuring (simple)"
+    (is (= (let [[a b]           [10 20]]    {:a a :b b})           (rds "[a b]"           [10 20]))    "local vars")
+    (is (= (let [[a b]           [10]]       {:a a :b b})           (rds "[a b]"           [10]))       "local vars with missing value")
+    (is (= (let [[a _]           [10 20]]    {:a a})                (rds "[a _]"           [10 20]))    "local var and placeholder")
+    (is (= (let [[a _ c]         [10 20 30]] {:a a :c c})           (rds "[a _ c]"         [10 20 30])) "local vars and placeholder")
+    (is (= (let [[_ _]           [10 20]]    {})                    (rds "[_ _]"           [10 20]))    "only placeholders")
+    (is (= (let [[& c]           [10 20]]    {:c c})                (rds "[& c]"           [10 20]))    "opt var")
+    (is (= (let [[a b & c]       [10 20 30]] {:a a :b b :c c})      (rds "[a b & c]"       [10 20 30])) "local and opt vars")
+    (is (= (let [[:as d]         [10 20]]    {:d d})                (rds "[:as d]"         [10 20]))    "only :as")
+    (is (= (let [[a b :as d]     [10 20]]    {:a a :b b :d d})      (rds "[a b :as d]"     [10 20]))    "local vars and :as")
+    (is (= (let [[& c :as d]     [10 20]]    {:c c :d d})           (rds "[& c :as d]"     [10 20]))    "opt var and :as")
+    (is (= (let [[a b & c :as d] [10 20 30]] {:a a :b b :c c :d d}) (rds "[a b & c :as d]" [10 20 30])) "local vars, opt var and :as"))
+  (testing "seq destructuring (nested)"
+    (is (= (let [[[a] [b]]           [[10] [20]]] {:a a :b b})        (rds "[[a] [b]]"         [[10] [20]]))  "local vars")
+    (is (= (let [[[a] [_]]           [[10] [20]]] {:a a})             (rds "[[a] [_]]"         [[10] [20]]))  "local var and placeholder")
+    (is (= (let [[[_] [_]]           [[10] [20]]] {})                 (rds "[[_] [_]]"         [[10] [20]]))  "only placeholders")
+    (is (= (let [[a b & [c]]         [10 20 30]]  {:a a :b b :c c})   (rds "[a b & [c]]"       [10 20 30]))   "local and opt vars")
+    (is (= (let [[:as [d]]           [10]]        {:d d})             (rds "[:as [d]]"         [10]))         "only :as")
+    (is (= (let [[[a] [b] :as [d]]   [[10] [20]]] {:a a :b b :d d})   (rds "[[a] [b] :as [d]]" [[10] [20]]))  "local vars and :as")
+    (is (= (let [[& [c] :as [d e]]   [10 20]]     {:c c :d d :e e})   (rds "[& [c] :as [d e]]" [10 20]))      "opt var and :as")
+    (is (= (let [[[a] [b]
+                  & [c] :as [d e]]   [[10] [20] [30]]] {:a a :b b :c c
+                                                        :d d :e e})   (rds "[[a] [b] & [c] :as [d e]]"
+                                                                           [[10] [20] [30]]))                    "local vars, opt var and :as")
+    (is (= (let [[a {b :b}]          [10 {:b 20}]]  {:a a :b b})      (rds "[a {b :b}]"          [10 {:b 20}]))  "local var and value lookup (map)")
+    (is (= (let [[a {:keys [b]}]     [10 {:b 20}]]  {:a a :b b})      (rds "[a {:keys [b]}]"     [10 {:b 20}]))  "local var and :keys (map)")
+    (is (= (let [[& {:keys [a b]}]   [:a 10 :b 20]] {:a a :b b})      (rds "[& {:keys [a b]}]"   [:a 10 :b 20])) "opt :keys (map)")
+    (is (= (let [[& {a :a [b c] :b}] [:a 10
+                                      :b [20 30]]]  {:a a :b b :c c}) (rds "[& {a :a [b c] :b}]" [:a 10 :b [20 30]])) "opt :keys (map)"))
+  (testing "map destructuring (simple)"
+    (is (= (let [{a 0}        [10 11 12 13]]   {:a a})           (rds "{a 0}"       [10 11 12 13]))    "value lookup on a vector")
+    (is (= (let [{a 9}        [10 11 12 13]]   {:a a})           (rds "{a 9}"       [10 11 12 13]))    "missing value lookup on a vector")
+    (is (= (let [{a :a}       {:a 10 :b 20}]   {:a a})           (rds "{a :a}"      {:a 10 :b 20}))    "value lookup on a map")
+    (is (= (let [{:keys [a]}  {:a 10 :b 20}]   {:a a})           (rds "{:keys [a]}" {:a 10 :b 20}))    ":keys")
+    (is (= (let [{:strs [a]}  {"a" 10 "b" 20}] {:a a})           (rds "{:strs [a]}" {"a" 10 "b" 20}))  ":strs")
+    (is (= (let [{:syms [a]}  {'a 10 'b 20}]   {:a a})           (rds "{:syms [a]}" {'a 10 'b 20}))    ":syms") ;see workaround below
+    (is (= (let [{:syms [a]}  {'a 10 'b 20}]   {:a a})           (rds "{:syms [a]}" {(symbol 'a) 10
+                                                                                     (symbol 'b) 20})) ":syms (coerced as symbol)")
+    (is (= (let [{a :a
+                  :or {a 20}} {:a 10}]         {:a a})           (rds "{a :a :or {a 20}}" {:a 10}))    "value lookup with :or")
+    (is (= (let [{a :a
+                  :or {a 20}} {}]              {:a a})           (rds "{a :a :or {a 20}}" {}))         "missing value lookup with :or")
+    (is (= (let [{a 0 :as b}  [10]]            {:a a :b b})      (rds "{a 0 :as b}"       [10]))       "value lookup on a vector and :as")
+    (is (= (let [{a :a :as b} {:a 10}]         {:a a :b b})      (rds "{a :a :as b}"      {:a 10}))    "value lookup on a map and :as")
+    (is (= (let [{:keys [a b]
+                  :or {b 20} :as c} {:a 10}]   {:a a :b b :c c}) (rds "{:keys [a b] :or {b 20} :as c}"
+                                                                      {:a 10}))                        ":keys, :or and :as")
+    )
+  (testing "map destructuring (nested)"
+    (is (= (let [{{p :p} :a}      {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) "value lookup in value lookup")
+    (is (= (let [{[p] :a}     {:a [10]}] {:p p})        (rds "{[p] :a}"         {:a [10]}))    "local var (seq) in value lookup")
+    (is (= (let [{{:keys [p]} :a} {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) ":keys lookup in value lookup"))
+  (testing "nested seq/map destructuring"
+    ))
 
 
 ;; ---------- Equivalent of Macros ----------
@@ -321,6 +396,7 @@
   (println "\n** Running tests for quiddity.lib-test **")
   (test-unsupported)
   (test-special-form-equivs)
+  (test-destructuring)
   (test-macro-equiv-if-not)
   (test-macro-equiv-when)
   (test-macro-equiv-when-not)

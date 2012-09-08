@@ -63,6 +63,59 @@
 ;;----- evaluators | macros | http://clojure.org/macros -----
 
 
+(defn i-destructure
+  "Destructure `value` into `local` and return the new environment."
+  [maps local value]
+  (let [ds  (partial i-destructure maps)
+        rmm (fn [f coll & more] (reduce merge {} (apply map f coll more)))
+        afa #(core/*error-handler*
+               "Unsupported binding form, only :as can follow & parameter")
+        ubf #(core/*error-handler* (str "Unsupported binding form: " %))]
+    (cond
+      (= '_ local)    {}
+      (symbol? local) {(keyword local) value}
+      (vector? local) (let [n-locals  (take-while (comp not #{'& :as}) local)
+                            n-count   (count n-locals)
+                            base-env  (rmm ds n-locals (->> (repeat nil)
+                                                         (concat (seq value))
+                                                         (take n-count)))
+                            [a s b t] (nthnext local n-count)
+                            addn-env (condp = a
+                                       nil {}
+                                       '&  (merge
+                                             (let [vs (nthnext value n-count)]
+                                               (ds s (if (map? s) ; '& {}' form
+                                                       (apply array-map vs)
+                                                       vs)))
+                                             (if (= b :as) (ds t value)
+                                               (when b (afa))))
+                                       :as (ds s value))]
+                        (merge base-env addn-env))
+      (map? local)    (if-let [bs (->> (keys local)
+                                    (filter keyword?)
+                                    (filter (comp not #{:keys :strs :syms :or :as}))
+                                    seq)]
+                        (ubf (first bs))
+                        (let [r-env (rmm (fn [[k v]]
+                                           (ds k (core/evaluate v maps)))
+                                         (:or local))
+                              ->env (fn [f coll]
+                                      (let [g #(let [k (f %)
+                                                     c (if (contains? value k)
+                                                         value r-env)]
+                                                 (ds % (get c k)))]
+                                          (rmm g coll)))
+                              l-env (->env local   (-> (comp not keyword?)
+                                                     (filter (keys local))))
+                              k-env (->env keyword (:keys local))
+                              t-env (->env str     (:strs local))
+                              y-env (->env symbol  (:syms local))
+                              a-env (let [as (:as local)]
+                                      (when as (ds as value)))]
+                          (merge l-env k-env t-env y-env a-env)))
+      :otherwise      (ubf local))))
+
+
 (defn e-if-not
   "Implementation of the `if-not` macro."
   ([maps test then]
