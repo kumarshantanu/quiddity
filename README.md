@@ -66,6 +66,7 @@ following are not supported (note that shortcuts to special forms eg. `'`, `#'`,
 * Destructuring
 * Classnames (they are treated as ordinary symbols)
 * Creating functions
+* Namespaces
 
 
 ### Evaluator
