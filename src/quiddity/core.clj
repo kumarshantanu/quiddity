@@ -32,7 +32,7 @@
     (let [coll-fn (cond
                     (vector? form) vec
                     (set? form)    set
-                    :otherwise     list*)]
+                    :otherwise     (partial apply list))]
       (coll-fn (map #(evaluate % maps) form)))))
 
 

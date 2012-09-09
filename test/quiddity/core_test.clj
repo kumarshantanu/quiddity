@@ -44,6 +44,7 @@
       (is (= :foo (ev `':foo q)) "keyword")
       (is (= "pi" (ev `'"pi" q)) "string"))
     (testing "Collection"
+      (is (= () (ev `()))           "empty list")
       (is (= '(1 2) (ev `'(1 2) q)) "list")
       (is (= '[1 2] (ev `'[1 2] q)) "vector")
       (is (= '#{1 2} (ev `'#{1 2} q)) "set")
