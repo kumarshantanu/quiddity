@@ -173,9 +173,7 @@
   (testing "map destructuring (nested)"
     (is (= (let [{{p :p} :a}      {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) "value lookup in value lookup")
     (is (= (let [{[p] :a}     {:a [10]}] {:p p})        (rds "{[p] :a}"         {:a [10]}))    "local var (seq) in value lookup")
-    (is (= (let [{{:keys [p]} :a} {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) ":keys lookup in value lookup"))
-  (testing "nested seq/map destructuring"
-    ))
+    (is (= (let [{{:keys [p]} :a} {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) ":keys lookup in value lookup")))
 
 
 ;; ---------- Equivalent of Macros ----------
@@ -325,7 +323,13 @@
     (is (= 2 (es "(let [a 1] (+ 1 a) (+ x a))" {:+ + :x 1} lib/macros))     "1 var")
     (is (= 3 (es "(let [a 1 b 2] (+ 1 a) (+ x b))" {:+ + :x 1} lib/macros)) "2 vars, no intra-reference")
     (is (= 2 (es "(let [a 1 b a] (+ 1 a) (+ x b))" {:+ + :x 1} lib/macros)) "2 vars with direct intra-reference")
-    (is (= 3 (es "(let [a 1 b (inc a)] (+ 1 a) (+ x b))" {:+ + :x 1 :inc inc} lib/macros)) "2 vars with intra-reference expr")))
+    (is (= 3 (es "(let [a 1 b (inc a)] (+ 1 a) (+ x b))" {:+ + :x 1 :inc inc} lib/macros)) "2 vars with intra-reference expr"))
+  (testing "let (destructuring)"
+    (is (= 2 (es "(let [[a]         [1]] (+ 1 a) (+ x a))"              {:+ + :x 1} lib/macros)) "1 local var")
+    (is (= 3 (es "(let [[a b]       [1 2]] (+ 1 a) (+ x b))"            {:+ + :x 1} lib/macros)) "2 local vars")
+    (is (= 2 (es "(let [{a :a}      {:a 1} b a] (+ 1 a) (+ x b))"       {:+ + :x 1} lib/macros)) "value lookup")
+    (is (= 3 (es "(let [{:keys [a]} {:a 1} b (inc a)] (+ 1 a) (+ x b))" {:+ + :x 1
+                                                                         :inc inc}  lib/macros)) ":keys lookup")))
 
 
 (deftest test-macro-equiv-for-each
@@ -336,27 +340,31 @@
     (is (= (for [a [1] b [2]] 0) (es "(for-each [a [1] b [2]] 0)" lib/macros)) "2 vars, no intra-reference")
     (is (= (for [a [[1]] b a] 0)   (es "(for-each [a [[1]] b a] 0)" lib/macros))   "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] 0) (es "(for-each [a [[1]] b (conj a 2)] 0)" {:conj conj} lib/macros)) "2 vars with intra-reference expr"))
-  (testing "let (single external symbol as body)"
+  (testing "for-each (single external symbol as body)"
     (is (= (for [a nil] 1) (es "(for-each [a nil] x)" {:x 1} lib/macros))     "1 var over nil")
     (is (= (for [a [1]] 1) (es "(for-each [a [1]] x)" {:x 1} lib/macros))     "1 var over [1]")
     (is (= (for [a (range 2)] 1) (es "(for-each [a (range 2)] x)" {:range range :x 1} lib/macros))     "1 var over expr")
     (is (= (for [a [1] b [2]] 1) (es "(for-each [a [1] b [2]] x)" {:x 1} lib/macros)) "2 vars, no intra-reference")
     (is (= (for [a [[1]] b a] 1)   (es "(for-each [a [[1]] b a] x)" {:x 1} lib/macros))   "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] 1) (es "(for-each [a [[1]] b (conj a 2)] x)" {:conj conj :x 1} lib/macros)) "2 vars with intra-reference expr"))
-  (testing "let (single let-bound symbol as body)"
+  (testing "for-each (single let-bound symbol as body)"
     (is (= (for [a nil] a) (es "(for-each [a nil] a)" lib/macros))     "1 var over nil")
     (is (= (for [a [1]] a) (es "(for-each [a [1]] a)" lib/macros))     "1 var over [1]")
     (is (= (for [a (range 2)] a) (es "(for-each [a (range 2)] a)" {:range range} lib/macros))     "1 var over expr")
     (is (= (for [a [1] b [2]] b) (es "(for-each [a [1] b [2]] b)" lib/macros)) "2 vars, no intra-reference")
     (is (= (for [a [[1]] b a] b) (es "(for-each [a [[1]] b a] b)" lib/macros))   "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] b) (es "(for-each [a [[1]] b (conj a 2)] b)" {:conj conj} lib/macros)) "2 vars with intra-reference expr"))
-  (testing "let (single expr as body)"
+  (testing "for-each (single expr as body)"
     (is (= (for [a nil] (+ 1 a)) (es "(for-each [a nil] (+ x a))" {:+ + :x 1} lib/macros))     "1 var over nil")
     (is (= (for [a [1]] (+ 1 a)) (es "(for-each [a [1]] (+ x a))" {:+ + :x 1} lib/macros))     "1 var over [1]")
     (is (= (for [a (range 2)] (+ 1 a)) (es "(for-each [a (range 2)] (+ x a))" {:range range :+ + :x 1} lib/macros))     "1 var over expr")
     (is (= (for [a [1] b [2]] (+ 1 b)) (es "(for-each [a [1] b [2]] (+ x b))" {:+ + :x 1} lib/macros)) "2 vars, no intra-reference")
     (is (= (for [a [[1]] b a] (+ 1 b))   (es "(for-each [a [[1]] b a] (+ x b))" {:+ + :x 1} lib/macros))   "2 vars with direct intra-reference")
-    (is (= (for [a [[1]] b (conj a 2)] (+ 1 b)) (es "(for-each [a [[1]] b (conj a 2)] (+ x b))" {:conj conj :+ + :x 1} lib/macros)) "2 vars with intra-reference expr")))
+    (is (= (for [a [[1]] b (conj a 2)] (+ 1 b)) (es "(for-each [a [[1]] b (conj a 2)] (+ x b))" {:conj conj :+ + :x 1} lib/macros)) "2 vars with intra-reference expr"))
+  (testing "for-each (destructuring)"
+    (is (= (for [[a] [[1]]] (+ 1 a))     (es "(for-each [[a] [[1]]] (+ x a))"     {:+ + :x 1} lib/macros)) "1 local var")
+    (is (= (for [[a b] [[1 2]]] (+ a b)) (es "(for-each [[a b] [[1 2]]] (+ a b))" {:+ +}      lib/macros)) "2 local vars")
+    ))
 
 
 (deftest test-macro-equiv-and

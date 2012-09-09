@@ -3,7 +3,7 @@
 ## TODO
 
 * Destructuring primitives
-* [TODO] Retrofit destructuring into `let` `for-each`
+* Retrofit destructuring into `let` `for-each`
 * [TODO] Implement `for` macro; deprecate/remove `for-each`
 * [TODO] Function declaration (both `fn` and `fn*`) with destructuring
 * [TODO] More macros: `if-let` `when-let` `letfn` with destructuring

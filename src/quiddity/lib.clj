@@ -64,7 +64,8 @@
 
 
 (defn i-destructure
-  "Destructure `value` into `local` and return the new environment."
+  "Destructure `value` into `local` and return a map of keywordized-symbols to
+  corresponding values."
   [maps local value]
   (let [ds  (partial i-destructure maps)
         rmm (fn [f coll & more] (reduce merge {} (apply map f coll more)))
@@ -144,11 +145,9 @@
 (defn e-let
   "Implementation of the `let` macro. No destructuring support."
   [maps bindings & forms] {:pre [(seq bindings)
-                                 (even? (count bindings))
-                                 (every? symbol?
-                                         (map first (partition 2 bindings)))]}
+                                 (even? (count bindings))]}
   (let [[k v & more] bindings
-        kv-map       {(keyword k) (core/evaluate v maps)}]
+        kv-map       (i-destructure maps k (core/evaluate v maps))]
     (if (seq more)
       (apply e-let (cons kv-map maps) more forms)
       (apply e-do  (cons kv-map maps) forms))))
@@ -158,19 +157,15 @@
   "Basic implementation of the `for` macro, where :let, :when and :while
   binding forms are not supported."
   [maps bindings form] {:pre [(seq bindings)
-                              (even? (count bindings))
-                              (every? symbol?
-                                      (map first (partition 2 bindings)))]}
+                              (even? (count bindings))]}
   (let [[k v & more] bindings
-        realized-k   (keyword k)
-        realized-v   (core/evaluate v maps)
-        kv-map       {realized-k realized-v}]
+        realized-v   (core/evaluate v maps)]
     (if (seq more)
       (apply concat
              (for [each realized-v]
-               (e-for-each (cons {realized-k each} maps) more form)))
+               (e-for-each (cons (i-destructure maps k each) maps) more form)))
       (for [each realized-v]
-        (core/evaluate form (cons {realized-k each} maps))))))
+        (core/evaluate form (cons (i-destructure maps k each) maps))))))
 
 
 (defn e-and
