@@ -332,39 +332,132 @@
                                                                          :inc inc}  lib/macros)) ":keys lookup")))
 
 
+(deftest test-macro-equiv-if-let
+  (let [a1 (atom 0)
+        a2 (atom 0)
+        f1 #(swap! a1 inc)
+        f2 #(swap! a2 inc)
+        ra #(do (reset! a1 0) (reset! a2 0))
+        fs {:f1 f1 :f2 f2}]
+    (testing "if-let (truthy-constant)"
+      (ra)
+      (is (= 1 (es "(if-let [_ true] (f1) (f2))" fs lib/macros)))
+      (is (= 1 @a1))
+      (is (= 0 @a2)))
+    (testing "if-let (falsy-constant)"
+      (ra)
+      (is (= 1 (es "(if-let [_ false] (f1) (f2))" fs lib/macros)))
+      (is (= 0 @a1))
+      (is (= 1 @a2)))
+    (testing "if-let (truthy symbol-value)"
+      (ra)
+      (is (= 1 (es "(if-let [_ a] (f1) (f2))" {:a true} fs lib/macros)))
+      (is (= 1 @a1))
+      (is (= 0 @a2)))
+    (testing "if-let (falsy symbol-value)"
+      (ra)
+      (is (= 1 (es "(if-let [_ a] (f1) (f2))" {:a false} fs lib/macros)))
+      (is (= 0 @a1))
+      (is (= 1 @a2)))
+    (testing "if-let (truthy test-expr)"
+      (ra)
+      (is (= 1 (es "(if-let [_ (a b)] (f1) (f2))" {:a identity :b true} fs lib/macros)))
+      (is (= 1 @a1))
+      (is (= 0 @a2)))
+    (testing "if-let (falsy test-expr)"
+      (ra)
+      (is (= 1 (es "(if-let [_ (a b)] (f1) (f2))" {:a identity :b false} fs lib/macros)))
+      (is (= 0 @a1))
+      (is (= 1 @a2)))
+    (testing "if-let (destructuring)"
+      (ra)
+      (is (= [1 2] (es "(if-let [[p] (a b)] [(f1) p] (f2))" {:a identity :b [2]} fs lib/macros))                "1 local")
+      (ra)
+      (is (= [1 5] (es "(if-let [[p q] (a b)] [(f1) (+ p q)] (f2))" {:a identity :b [2 3] :+ +} fs lib/macros)) "2 locals")
+      (ra)
+      (is (= [1 2] (es "(if-let [{p :q} (a b)] [(f1) p] (f2))" {:a identity :b {:q 2}} fs lib/macros))          " value lookup")
+      (ra)
+      (is (= [1 2] (es "(if-let [{:keys [p]} (a b)] [(f1) p] (f2))" {:a identity :b {:p 2}} fs lib/macros))     ":keys lookup"))))
+
+
+(deftest test-macro-equiv-when-let
+  (let [a1 (atom 0)
+        a2 (atom 0)
+        f1 #(swap! a1 inc)
+        f2 #(swap! a2 inc)
+        ra #(do (reset! a1 0) (reset! a2 0))
+        fs {:f1 f1 :f2 f2}]
+    (testing "when-let (truthy constant)"
+      (is (= nil (es "(when-let [_ true])"     lib/macros)) "no body")
+      (is (= :aa (es "(when-let [_ true] :aa)" lib/macros)) "constant body")
+      (ra)
+      (is (= 1 (es "(when-let [_ true] (f1))"      fs lib/macros)) "expression body")
+      (is (= 1 @a1))
+      (ra)
+      (is (= 1 (es "(when-let [_ true] (f1) (f2))" fs lib/macros)) "multiple expression body")
+      (is (= 1 @a1))
+      (is (= 1 @a2)))
+    (testing "when-let (falsy constant)"
+      (is (= nil (es "(when-let [_ false])"     lib/macros)) "no body")
+      (is (= nil (es "(when-let [_ false] :aa)" lib/macros)) "constant body"))
+    (testing "when-let (truthy expression)"
+      (is (= nil (es "(when-let [_ (a b)])"     {:a identity :b true} lib/macros)) "no body")
+      (is (= :aa (es "(when-let [_ (a b)] :aa)" {:a identity :b true} lib/macros)) "constant body")
+      (ra)
+      (is (= 1 (es "(when-let [_ (a b)] (f1))"      {:a identity :b true} fs lib/macros)) "expression body")
+      (is (= 1 @a1))
+      (ra)
+      (is (= 1 (es "(when-let [_ (a b)] (f1) (f2))" {:a identity :b true} fs lib/macros)) "multiple expression body")
+      (is (= 1 @a1))
+      (is (= 1 @a2)))
+    (testing "when-let (falsy expression)"
+      (is (= nil (es "(when-let [_ (a b)])"     {:a identity :b nil} lib/macros)) "no body")
+      (is (= nil (es "(when-let [_ (a b)] :aa)" {:a identity :b nil} lib/macros)) "constant body"))
+    (testing "when-let (destructuring)"
+      (ra)
+      (is (= [1 2] (es "(when-let [[p] (a b)] [(f1) p])" {:a identity :b [2]} fs lib/macros))                "1 local")
+      (ra)
+      (is (= [1 5] (es "(when-let [[p q] (a b)] [(f1) (+ p q)])" {:a identity :b [2 3] :+ +} fs lib/macros)) "2 locals")
+      (ra)
+      (is (= [1 2] (es "(when-let [{p :q} (a b)] [(f1) p])" {:a identity :b {:q 2}} fs lib/macros))          " value lookup")
+      (ra)
+      (is (= [1 2] (es "(when-let [{:keys [p]} (a b)] [(f1) p])" {:a identity :b {:p 2}} fs lib/macros))     ":keys lookup"))))
+
+
 (deftest test-macro-equiv-for-each
   (testing "for-each (single constant as body)"
-    (is (= (for [a nil] 0) (es "(for-each [a nil] 0)" lib/macros))     "1 var over nil")
-    (is (= (for [a [1]] 0) (es "(for-each [a [1]] 0)" lib/macros))     "1 var over [1]")
-    (is (= (for [a (range 2)] 0) (es "(for-each [a (range 2)] 0)" {:range range} lib/macros))     "1 var over expr")
+    (is (= (for [a nil] 0)       (es "(for-each [a nil]       0)" lib/macros)) "1 var over nil")
+    (is (= (for [a [1]] 0)       (es "(for-each [a [1]]       0)" lib/macros)) "1 var over [1]")
+    (is (= (for [a (range 2)] 0) (es "(for-each [a (range 2)] 0)" {:range range} lib/macros)) "1 var over expr")
     (is (= (for [a [1] b [2]] 0) (es "(for-each [a [1] b [2]] 0)" lib/macros)) "2 vars, no intra-reference")
-    (is (= (for [a [[1]] b a] 0)   (es "(for-each [a [[1]] b a] 0)" lib/macros))   "2 vars with direct intra-reference")
+    (is (= (for [a [[1]] b a] 0) (es "(for-each [a [[1]] b a] 0)" lib/macros)) "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] 0) (es "(for-each [a [[1]] b (conj a 2)] 0)" {:conj conj} lib/macros)) "2 vars with intra-reference expr"))
   (testing "for-each (single external symbol as body)"
-    (is (= (for [a nil] 1) (es "(for-each [a nil] x)" {:x 1} lib/macros))     "1 var over nil")
-    (is (= (for [a [1]] 1) (es "(for-each [a [1]] x)" {:x 1} lib/macros))     "1 var over [1]")
-    (is (= (for [a (range 2)] 1) (es "(for-each [a (range 2)] x)" {:range range :x 1} lib/macros))     "1 var over expr")
+    (is (= (for [a nil] 1)       (es "(for-each [a nil]       x)" {:x 1} lib/macros)) "1 var over nil")
+    (is (= (for [a [1]] 1)       (es "(for-each [a [1]]       x)" {:x 1} lib/macros)) "1 var over [1]")
+    (is (= (for [a (range 2)] 1) (es "(for-each [a (range 2)] x)" {:range range :x 1} lib/macros)) "1 var over expr")
     (is (= (for [a [1] b [2]] 1) (es "(for-each [a [1] b [2]] x)" {:x 1} lib/macros)) "2 vars, no intra-reference")
-    (is (= (for [a [[1]] b a] 1)   (es "(for-each [a [[1]] b a] x)" {:x 1} lib/macros))   "2 vars with direct intra-reference")
+    (is (= (for [a [[1]] b a] 1) (es "(for-each [a [[1]] b a] x)" {:x 1} lib/macros)) "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] 1) (es "(for-each [a [[1]] b (conj a 2)] x)" {:conj conj :x 1} lib/macros)) "2 vars with intra-reference expr"))
   (testing "for-each (single let-bound symbol as body)"
-    (is (= (for [a nil] a) (es "(for-each [a nil] a)" lib/macros))     "1 var over nil")
-    (is (= (for [a [1]] a) (es "(for-each [a [1]] a)" lib/macros))     "1 var over [1]")
-    (is (= (for [a (range 2)] a) (es "(for-each [a (range 2)] a)" {:range range} lib/macros))     "1 var over expr")
+    (is (= (for [a nil] a)       (es "(for-each [a nil]       a)" lib/macros)) "1 var over nil")
+    (is (= (for [a [1]] a)       (es "(for-each [a [1]]       a)" lib/macros)) "1 var over [1]")
+    (is (= (for [a (range 2)] a) (es "(for-each [a (range 2)] a)" {:range range} lib/macros)) "1 var over expr")
     (is (= (for [a [1] b [2]] b) (es "(for-each [a [1] b [2]] b)" lib/macros)) "2 vars, no intra-reference")
-    (is (= (for [a [[1]] b a] b) (es "(for-each [a [[1]] b a] b)" lib/macros))   "2 vars with direct intra-reference")
+    (is (= (for [a [[1]] b a] b) (es "(for-each [a [[1]] b a] b)" lib/macros)) "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] b) (es "(for-each [a [[1]] b (conj a 2)] b)" {:conj conj} lib/macros)) "2 vars with intra-reference expr"))
   (testing "for-each (single expr as body)"
-    (is (= (for [a nil] (+ 1 a)) (es "(for-each [a nil] (+ x a))" {:+ + :x 1} lib/macros))     "1 var over nil")
-    (is (= (for [a [1]] (+ 1 a)) (es "(for-each [a [1]] (+ x a))" {:+ + :x 1} lib/macros))     "1 var over [1]")
-    (is (= (for [a (range 2)] (+ 1 a)) (es "(for-each [a (range 2)] (+ x a))" {:range range :+ + :x 1} lib/macros))     "1 var over expr")
+    (is (= (for [a nil] (+ 1 a))       (es "(for-each [a nil]       (+ x a))" {:+ + :x 1} lib/macros)) "1 var over nil")
+    (is (= (for [a [1]] (+ 1 a))       (es "(for-each [a [1]]       (+ x a))" {:+ + :x 1} lib/macros)) "1 var over [1]")
+    (is (= (for [a (range 2)] (+ 1 a)) (es "(for-each [a (range 2)] (+ x a))" {:range range :+ + :x 1} lib/macros)) "1 var over expr")
     (is (= (for [a [1] b [2]] (+ 1 b)) (es "(for-each [a [1] b [2]] (+ x b))" {:+ + :x 1} lib/macros)) "2 vars, no intra-reference")
-    (is (= (for [a [[1]] b a] (+ 1 b))   (es "(for-each [a [[1]] b a] (+ x b))" {:+ + :x 1} lib/macros))   "2 vars with direct intra-reference")
+    (is (= (for [a [[1]] b a] (+ 1 b)) (es "(for-each [a [[1]] b a] (+ x b))" {:+ + :x 1} lib/macros)) "2 vars with direct intra-reference")
     (is (= (for [a [[1]] b (conj a 2)] (+ 1 b)) (es "(for-each [a [[1]] b (conj a 2)] (+ x b))" {:conj conj :+ + :x 1} lib/macros)) "2 vars with intra-reference expr"))
   (testing "for-each (destructuring)"
-    (is (= (for [[a] [[1]]] (+ 1 a))     (es "(for-each [[a] [[1]]] (+ x a))"     {:+ + :x 1} lib/macros)) "1 local var")
-    (is (= (for [[a b] [[1 2]]] (+ a b)) (es "(for-each [[a b] [[1 2]]] (+ a b))" {:+ +}      lib/macros)) "2 local vars")
-    ))
+    (is (= (for [[a]         [[1]]]    (+ 1 a)) (es "(for-each [[a]         [[1]]]    (+ x a))" {:+ + :x 1} lib/macros)) "1 local var")
+    (is (= (for [[a b]       [[1 2]]]  (+ a b)) (es "(for-each [[a b]       [[1 2]]]  (+ a b))" {:+ +}      lib/macros)) "2 local vars")
+    (is (= (for [{a :a}      [{:a 1}]] (+ 1 a)) (es "(for-each [{a :a}      [{:a 1}]] (+ x a))" {:+ + :x 1} lib/macros)) "value lookup")
+    (is (= (for [{:keys [a]} [{:a 1}]] (+ 1 a)) (es "(for-each [{:keys [a]} [{:a 1}]] (+ x a))" {:+ + :x 1} lib/macros)) ":keys lookup")))
 
 
 (deftest test-macro-equiv-and
@@ -409,7 +502,8 @@
   (test-macro-equiv-when)
   (test-macro-equiv-when-not)
   (test-macro-equiv-let)
+  (test-macro-equiv-if-let)
+  (test-macro-equiv-when-let)
   (test-macro-equiv-for-each)
   (test-macro-equiv-and)
-  (test-macro-equiv-or)
-)
+  (test-macro-equiv-or))

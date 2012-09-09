@@ -33,7 +33,7 @@
 
 
 (defn e-if
-  "Implementation of the `if` special form."
+  "Evaluator re-implementation of the `if` special form."
   ([maps test then]
     (if (core/evaluate test maps)
       (core/evaluate then maps)))
@@ -44,13 +44,13 @@
 
 
 (defn e-do
-  "Implementation of the `do` special form."
+  "Evaluator re-implementation of the `do` special form."
   [maps & forms]
   (last (map #(core/evaluate % maps) forms)))
 
 
 (defn e-quote
-  "Implementation of the `quote` speial form."
+  "Evaluator re-implementation of the `quote` speial form."
   [maps x]
   x)
 
@@ -60,7 +60,7 @@
                     :quote (core/make-evaluator e-quote)})
 
 
-;;----- evaluators | macros | http://clojure.org/macros -----
+;;----- destructuring helper | http://clojure.org/special_forms -----
 
 
 (defn i-destructure
@@ -117,8 +117,11 @@
       :otherwise      (ubf local))))
 
 
+;;----- evaluators | macros | http://clojure.org/macros -----
+
+
 (defn e-if-not
-  "Implementation of the `if-not` macro."
+  "Evaluator re-implementation of the `if-not` macro."
   ([maps test then]
     (if-not (core/evaluate test maps)
       (core/evaluate then maps)))
@@ -129,21 +132,21 @@
 
 
 (defn e-when
-  "Implementation of the `when` macro."
+  "Evaluator re-implementation of the `when` macro."
   [maps test & forms]
   (when (core/evaluate test maps)
     (apply e-do maps forms)))
 
 
 (defn e-when-not
-  "Implementation of the `when-not` macro."
+  "Evaluator re-implementation of the `when-not` macro."
   [maps test & forms]
   (when-not (core/evaluate test maps)
     (apply e-do maps forms)))
 
 
 (defn e-let
-  "Implementation of the `let` macro. No destructuring support."
+  "Evaluator re-implementation of the `let` macro."
   [maps bindings & forms] {:pre [(seq bindings)
                                  (even? (count bindings))]}
   (let [[k v & more] bindings
@@ -153,9 +156,26 @@
       (apply e-do  (cons kv-map maps) forms))))
 
 
+(defn e-if-let
+  "Evaluator re-implementation of the `if-let` macro."
+  ([maps binding then]
+    (e-if-let binding then nil))
+  ([maps binding then else] {:pre [(vector? binding) (= 2 (count binding))]}
+    (if-let [v (core/evaluate (second binding) maps)]
+      (e-let maps [(first binding) v] then)
+      (e-do  maps else))))
+
+
+(defn e-when-let
+  "Evaluator re-implementation of the `when-let` macro."
+  [maps binding & forms] {:pre [(vector? binding) (= 2 (count binding))]}
+  (when-let [v (core/evaluate (second binding) maps)]
+    (apply e-let maps [(first binding) v] forms)))
+
+
 (defn e-for-each
-  "Basic implementation of the `for` macro, where :let, :when and :while
-  binding forms are not supported."
+  "Basic evaluator re-implementation of the `for` macro, where :let, :when and
+  :while binding forms are not supported."
   [maps bindings form] {:pre [(seq bindings)
                               (even? (count bindings))]}
   (let [[k v & more] bindings
@@ -169,12 +189,13 @@
 
 
 (defn e-and
-  "Implementation of the `and` macro."
+  "Evaluator re-implementation of the `and` macro."
   [maps & forms]
   (reduce #(and %1 (core/evaluate %2 maps)) true forms))
 
 
 (defn e-or
+  "Evaluator re-implementation of the `or` macro."
   [maps & forms]
   (reduce #(or %1 (core/evaluate %2 maps)) nil forms))
 
@@ -183,6 +204,8 @@
              :when     (core/make-evaluator e-when)
              :when-not (core/make-evaluator e-when-not)
              :let      (core/make-evaluator e-let)
+             :if-let   (core/make-evaluator e-if-let)
+             :when-let (core/make-evaluator e-when-let)
              :for-each (core/make-evaluator e-for-each)
              :and      (core/make-evaluator e-and)
              :or       (core/make-evaluator e-or)})
