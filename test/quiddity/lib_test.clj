@@ -460,6 +460,114 @@
     (is (= (for [{:keys [a]} [{:a 1}]] (+ 1 a)) (es "(for-each [{:keys [a]} [{:a 1}]] (+ x a))" {:+ + :x 1} lib/macros)) ":keys lookup")))
 
 
+(deftest test-macro-equiv-cond
+  (let [a1 (atom 0)
+        a2 (atom 0)
+        f1 #(swap! a1 inc)
+        f2 #(swap! a2 inc)
+        ra #(do (reset! a1 0) (reset! a2 0))
+        a  identity
+        b  true
+        c  false
+        fs {:f1 f1 :f2 f2 :a identity :b true :c false}]
+    (testing "cond (no arg)"
+      (is (= (cond)            (es "(cond)" lib/macros))               "no arg"))
+    (testing "cond (test & then)"
+      (is (= (cond true  1000) (es "(cond true  1000)" fs lib/macros)) "constant truthy test, constant then")
+      (is (= (cond true  (f1)) (es "(cond true  (f2))" fs lib/macros)) "constant truthy test, expression then")
+      (is (= (cond false 1000) (es "(cond false 1000)" fs lib/macros)) "constant falsy test, constant then")
+      (is (= (cond false (f1)) (es "(cond false (f2))" fs lib/macros)) "constant falsy test, expression then")
+      (is (= (cond (a b) 1000) (es "(cond (a b) 1000)" fs lib/macros)) "expression truthy test, constant then")
+      (is (= (cond (a b) (f1)) (es "(cond (a b) (f2))" fs lib/macros)) "expression truthy test, expression then")
+      (is (= (cond (a c) 1000) (es "(cond (a c) 1000)" fs lib/macros)) "expression falsy test, constant then")
+      (is (= (cond (a c) (f1)) (es "(cond (a c) (f2))" fs lib/macros)) "expression falsy test, expression then"))
+    (testing "cond (test1 & then1, test2 & then2)"
+      (is (= (cond false 10 true  20) (es "(cond false 10 true  20)" fs lib/macros)) "2nd truthy test, constant then")
+      (is (= (cond false 10 false 20) (es "(cond false 10 false 20)" fs lib/macros)) "2nd falsy test, constant then"))))
+
+
+(deftest test-macro-equiv-condp
+  (testing "condp (no clauses)"
+    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+                          (es "(condp = 1)" {:= =} lib/macros)) "no clauses")
+    )
+  (testing "condp (constant test and value)"
+    (is (= (condp = 1 1 1)         (es "(condp = 1 1 1)"         {:= =} lib/macros)) "matching")
+    (is (= (condp = 1 2 2 1 1)     (es "(condp = 1 2 2 1 1)"     {:= =} lib/macros)) "non-matching, matching")
+    (is (= (condp = 1 2 2 3)       (es "(condp = 1 2 2 3)"       {:= =} lib/macros)) "non-matching, default")
+    (is (= (condp = 1 1 :>> not)   (es "(condp = 1 1 :>> not)"   {:= = :not not} lib/macros)) "matching unary")
+    (is (= (condp = 1 2 :>> not
+             1 :>> not)    (es "(condp = 1 2 :>> not 1 :>> not)" {:= = :not not} lib/macros)) "non-matching unary, matching unary")
+    (is (= (condp = 1 2 :>> not 3) (es "(condp = 1 2 :>> not 3)" {:= = :not not} lib/macros)) "non-matching unary, default"))
+  (testing "condp (expression test and value)"
+    (is (= (condp = 1 (+ 0 1) 1)           (es "(condp = 1 (+ 0 1) 1)"             {:= = :+ +} lib/macros)) "matching")
+    (is (= (condp = 1 (+ 0 2) 2 (+ 0 1) 1) (es "(condp = 1 (+ 0 2) 2 (+ 0 1) 1)"   {:= = :+ +} lib/macros)) "non-matching, matching")
+    (is (= (condp = 1 (+ 0 2) 2 3)         (es "(condp = 1 (+ 0 2) 2 3)"           {:= = :+ +} lib/macros)) "non-matching, default")
+    (is (= (condp = 1 (+ 0 1) :>> not)     (es "(condp = 1 (+ 0 1) :>> not)"       {:= = :+ + :not not} lib/macros)) "matching unary")
+    (is (= (condp = 1 (+ 0 2) :>> not
+             (+ 0 1) :>> not)    (es "(condp = 1 (+ 0 2) :>> not (+ 0 1) :>> not)" {:= = :+ + :not not} lib/macros)) "non-matching unary, matching unary")
+    (is (= (condp = 1 (+ 0 2) :>> not 3)   (es "(condp = 1 (+ 0 2) :>> not 3)"     {:= = :+ + :not not} lib/macros)) "non-matching unary, default"))
+  (testing "condp (side-effect)"
+    (let [a1 (atom 0)
+          a2 (atom 0)
+          f1 #(swap! a1 inc)
+          f2 #(swap! a2 inc)
+          ra #(do (reset! a1 0) (reset! a2 0))
+          fs {:f1 f1 :f2 f2 := =}]
+      (is (= 2 (es "(condp = 1 (f1) (f1))"           fs lib/macros)) "matching")
+      (ra)
+      (f2) (f2)
+      (is (= 3 (es "(condp = 2 (f1) (f1) (f2))"      fs lib/macros)) "non-matching, default")
+      (is (= 1 @a1))
+      (ra)
+      (f2)
+      (is (= 3 (es "(condp = 2 (f1) (f1) (f2) (f2))" fs lib/macros)) "non-matching, matching")
+      (is (= 1 @a1))
+      (is (= 3 @a2)))))
+
+
+(deftest test-macro-equiv-case
+  (testing "case (no match)"
+    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+                          (es "(case 1)"     lib/macros))   "no clauses")
+    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+                          (es "(case 1 2 2)" lib/macros))   "no match, no default"))
+  (testing "case (match)"
+    (is (= (case 1       1 1)       (es "(case 1 1 1)"             lib/macros))        "const matching value-constant")
+    (is (= (case (+ 0 1) 1 1)       (es "(case (+ 0 1) 1 1)"       {:+ +} lib/macros)) "expr  matching value-constant")
+    (is (= (case (+ 0 1) 1 (+ 1 2)) (es "(case (+ 0 1) 1 (+ 1 2))" {:+ +} lib/macros)) "expr  matching value-expr")
+    (is (= (case (+ 1 1)
+             1 (+ 1 2)
+             2 (+ 2 3))   (es "(case (+ 1 1) 1 (+ 1 2) 2 (+ 2 3))" {:+ +} lib/macros)) "expr  non-matching, matching expr")
+    (is (= (case 1 (1 2) 2)         (es "(case 1 (1 2) 2)"         lib/macros))        "const matching list")
+    (is (= (case 1
+             (2 3) 2
+             (1 4) 4)               (es "(case 1 (2 3) 2 (1 4) 4)" lib/macros))        "const non-matching list, matching list")
+    (is (= (case ()
+             ()   1
+             (()) 2)                (es "(case () () 1 (()) 2)"    lib/macros))        "non-matching const, matching list"))
+  (testing "case (side effects)"
+    (let [a1 (atom 0)
+          a2 (atom 0)
+          f1 #(swap! a1 inc)
+          f2 #(swap! a2 inc)
+          ra #(do (reset! a1 0) (reset! a2 0))
+          fs {:f1 f1 :f2 f2 := =}]
+      (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+                            (es "(case 1 2 (f1))" fs lib/macros)) "non-matching")
+      (is (= 0 @a1))
+      (ra)
+      (is (= 1 (es "(case 1 1 (f1))" fs lib/macros)) "matching")
+      (ra)
+      (is (= 1 (es "(case 1 2 (f1) (f2))" fs lib/macros)) "non-matching, default")
+      (is (= 0 @a1) "non-matching value expression should not be evaluated")
+      (is (= 1 @a2) "default value expression should be evaluated")
+      (ra)
+      (is (= 1 (es "(case 1 2 (f1) 1 (f2))" fs lib/macros)) "non-matching, default")
+      (is (= 0 @a1) "non-matching value expression should not be evaluated")
+      (is (= 1 @a2) "matching value expression should be evaluated"))))
+
+
 (deftest test-macro-equiv-and
   (is (= (and)     (es "(and)" lib/macros)) "no arg")
   (is (= (and 100) (es "(and 100)" lib/macros)) "1 truthy constant arg")
@@ -505,5 +613,8 @@
   (test-macro-equiv-if-let)
   (test-macro-equiv-when-let)
   (test-macro-equiv-for-each)
+  (test-macro-equiv-cond)
+  (test-macro-equiv-condp)
+  (test-macro-equiv-case)
   (test-macro-equiv-and)
   (test-macro-equiv-or))

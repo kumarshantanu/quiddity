@@ -10,7 +10,7 @@
 * Destructuring primitives
 * Retrofit destructuring into `let` `for-each`
 * Conditional assignment macros: `if-let` `when-let` with destructuring
-* [TODO] Conditional macros `cond` `condp` `case`
+* Conditional macros: `cond` `condp` `case`
 
 ## 2012-August-30 / 0.1.0
 

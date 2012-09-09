@@ -188,14 +188,62 @@
         (core/evaluate form (cons (i-destructure maps k each) maps))))))
 
 
+(defn e-cond
+  "Re-implementation of the `cond` macro as an evaluator."
+  [maps & forms] {:pre [(even? (count forms))]}
+  (loop [[test then & more] forms]
+    (if (core/evaluate test maps)
+      (core/evaluate then maps)
+      (when (seq more)
+        (recur more)))))
+
+
+(defn e-condp
+  "Re-implementation of the `condp` macro as an evaluator."
+  [maps pred-form expr-form & clauses]
+  (let [pred (core/evaluate pred-form maps)
+        expr (core/evaluate expr-form maps)
+        nmce #(core/*error-handler* (str "No matching clause: " expr))
+        chop #(if (and (= :>> (second %)) (>= (count %) 3))
+                (let [[k _ v & more] %] [k true  v more])
+                (let [[k   v & more] %] [k false v more]))]
+    (if (seq clauses)
+      (loop [[k u? v more] (chop clauses)]
+        (let [texpr (core/evaluate k maps)
+              match (pred texpr expr)]
+          (if match (let [value (core/evaluate v maps)]
+                      (if u? (value match) value))
+            (if (< (count more) 2)
+              (if (empty? more) (nmce)
+                (core/evaluate (first more) maps))
+              (recur (chop more))))))
+      (nmce))))
+
+
+(defn e-case
+  "Re-implementation of the `case` macro as an evaluator."
+  [maps expr-form & clauses]
+  (let [expr (core/evaluate expr-form maps)
+        exp= (partial = expr)
+        nmce #(core/*error-handler* (str "No matching clause: " expr))]
+    (if (seq clauses)
+      (loop [[k v & more] clauses]
+        (cond (and (not (list? k)) (exp= k)) (core/evaluate v maps)
+              (and (list? k) (some exp= k))  (core/evaluate v maps)
+              (empty? more)      (nmce)
+              (= 1 (count more)) (core/evaluate (first more) maps)
+              :otherwise         (recur more)))
+      (nmce))))
+
+
 (defn e-and
-  "Evaluator re-implementation of the `and` macro."
+  "Re-implementation of the `and` macro as an evaluator."
   [maps & forms]
   (reduce #(and %1 (core/evaluate %2 maps)) true forms))
 
 
 (defn e-or
-  "Evaluator re-implementation of the `or` macro."
+  "Re-implementation of the `or` macro as an evaluator."
   [maps & forms]
   (reduce #(or %1 (core/evaluate %2 maps)) nil forms))
 
@@ -207,6 +255,9 @@
              :if-let   (core/make-evaluator e-if-let)
              :when-let (core/make-evaluator e-when-let)
              :for-each (core/make-evaluator e-for-each)
+             :cond     (core/make-evaluator e-cond)
+             :condp    (core/make-evaluator e-condp)
+             :case     (core/make-evaluator e-case)
              :and      (core/make-evaluator e-and)
              :or       (core/make-evaluator e-or)})
 
