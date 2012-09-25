@@ -85,9 +85,7 @@
                                        nil {}
                                        '&  (merge
                                              (let [vs (nthnext value n-count)]
-                                               (ds s (if (map? s) ; '& {}' form
-                                                       (apply array-map vs)
-                                                       vs)))
+                                               (ds s vs))
                                              (if (= b :as) (ds t value)
                                                (when b (afa))))
                                        :as (ds s value))]
@@ -97,7 +95,9 @@
                                     (filter (comp not #{:keys :strs :syms :or :as}))
                                     seq)]
                         (ubf (first bs))
-                        (let [r-env (rmm (fn [[k v]]
+                        (let [value (if (associative? value) value
+                                      (apply array-map value))
+                              r-env (rmm (fn [[k v]]
                                            (ds k (core/evaluate v maps)))
                                          (:or local))
                               ->env (fn [f coll]

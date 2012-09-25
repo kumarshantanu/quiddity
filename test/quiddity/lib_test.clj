@@ -147,11 +147,8 @@
                                                         :d d :e e})   (rds "[[a] [b] & [c] :as [d e]]"
                                                                            [[10] [20] [30]]))                    "local vars, opt var and :as")
     (is (= (let [[a {b :b}]          [10 {:b 20}]]  {:a a :b b})      (rds "[a {b :b}]"          [10 {:b 20}]))  "local var and value lookup (map)")
-    (is (= (let [[a {:keys [b]}]     [10 {:b 20}]]  {:a a :b b})      (rds "[a {:keys [b]}]"     [10 {:b 20}]))  "local var and :keys (map)")
-    (is (= (let [[& {:keys [a b]}]   [:a 10 :b 20]] {:a a :b b})      (rds "[& {:keys [a b]}]"   [:a 10 :b 20])) "opt :keys (map)")
-    (is (= (let [[& {a :a [b c] :b}] [:a 10
-                                      :b [20 30]]]  {:a a :b b :c c}) (rds "[& {a :a [b c] :b}]" [:a 10 :b [20 30]])) "opt :keys (map)"))
-  (testing "map destructuring (simple)"
+    (is (= (let [[a {:keys [b]}]     [10 {:b 20}]]  {:a a :b b})      (rds "[a {:keys [b]}]"     [10 {:b 20}]))  "local var and :keys (map)"))
+  (testing "map destructuring (simple, associative)"
     (is (= (let [{a 0}        [10 11 12 13]]   {:a a})           (rds "{a 0}"       [10 11 12 13]))    "value lookup on a vector")
     (is (= (let [{a 9}        [10 11 12 13]]   {:a a})           (rds "{a 9}"       [10 11 12 13]))    "missing value lookup on a vector")
     (is (= (let [{a :a}       {:a 10 :b 20}]   {:a a})           (rds "{a :a}"      {:a 10 :b 20}))    "value lookup on a map")
@@ -168,8 +165,12 @@
     (is (= (let [{a :a :as b} {:a 10}]         {:a a :b b})      (rds "{a :a :as b}"      {:a 10}))    "value lookup on a map and :as")
     (is (= (let [{:keys [a b]
                   :or {b 20} :as c} {:a 10}]   {:a a :b b :c c}) (rds "{:keys [a b] :or {b 20} :as c}"
-                                                                      {:a 10}))                        ":keys, :or and :as")
-    )
+                                                                      {:a 10}))                        ":keys, :or and :as"))
+  (testing "map destructuring (non-associative)" ; see https://groups.google.com/forum/?fromgroups=#!topic/clojure/zPLrIeehXbs
+    (is (= (let [{x :b :as y} '(:a 1 :b 2)]    {:x x :y y}) (rds "{x :b :as y}" '(:a 1 :b 2))) "simple non-associative map-destructuring")
+    (is (= (let [[& {:keys [a b]}]   [:a 10 :b 20]] {:a a :b b})      (rds "[& {:keys [a b]}]"   [:a 10 :b 20])) "opt :keys (map)")
+    (is (= (let [[& {a :a [b c] :b}] [:a 10
+                                      :b [20 30]]]  {:a a :b b :c c}) (rds "[& {a :a [b c] :b}]" [:a 10 :b [20 30]])) "opt :keys (map)"))
   (testing "map destructuring (nested)"
     (is (= (let [{{p :p} :a}      {:a {:p 10}}] {:p p}) (rds "{{:keys [p]} :a}" {:a {:p 10}})) "value lookup in value lookup")
     (is (= (let [{[p] :a}     {:a [10]}] {:p p})        (rds "{[p] :a}"         {:a [10]}))    "local var (seq) in value lookup")
