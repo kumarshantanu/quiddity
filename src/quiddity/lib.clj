@@ -248,6 +248,38 @@
   (reduce #(or %1 (core/evaluate %2 maps)) nil forms))
 
 
+(defn e->
+  "Re-implementation of the `->` (thread first) macro as an evaluator."
+  [maps x & forms]
+  (loop [value (core/evaluate x maps)
+         forms forms]
+    (if (empty? forms)
+      value
+      (let [[form-1 & more] forms]
+        (recur (if (or (list? form-1) (seq? form-1))
+                 (let [[f & args] form-1]
+                   (apply (core/evaluate f maps) value
+                          (core/realize-coll args maps)))
+                 ((core/evaluate form-1 maps) value))
+               more)))))
+
+
+(defn e->>
+  "Re-implementation of the `->>` (thread last) macro as an evaluator."
+  [maps x & forms]
+  (loop [value (core/evaluate x maps)
+         forms forms]
+    (if (empty? forms)
+      value
+      (let [[form-1 & more] forms]
+        (recur (if (or (list? form-1) (seq? form-1))
+                 (let [[f & args] form-1]
+                   (apply (core/evaluate f maps)
+                          (concat (core/realize-coll args maps) [value])))
+                 ((core/evaluate form-1 maps) value))
+               more)))))
+
+
 (def macros {:if-not   (core/make-evaluator e-if-not)
              :when     (core/make-evaluator e-when)
              :when-not (core/make-evaluator e-when-not)
@@ -259,7 +291,9 @@
              :condp    (core/make-evaluator e-condp)
              :case     (core/make-evaluator e-case)
              :and      (core/make-evaluator e-and)
-             :or       (core/make-evaluator e-or)})
+             :or       (core/make-evaluator e-or)
+             :->       (core/make-evaluator e->)
+             :->>      (core/make-evaluator e->>)})
 
 
 ;;----- functions -----

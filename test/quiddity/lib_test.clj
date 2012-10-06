@@ -601,6 +601,26 @@
   (is (= (or (+ 1 2) nil)     (es "(or (+ 1 a) (identity nil))" {:+ + :a 2 :identity identity} lib/macros)) "1 truthy expr, 1 falsy expr"))
 
 
+(deftest test-macro-equiv->
+  (is (= (-> 1 inc)       (es "(-> 1 inc)"       lib/macros {:inc inc})) "const init, naked form")
+  (is (= (-> 1 (inc))     (es "(-> 1 (inc))"     lib/macros {:inc inc})) "const init, list form")
+  (is (= (-> 1 (str 2))   (es "(-> 1 (str 2))"   lib/macros {:str str})) "const init, list form w/1 arg")
+  (is (= (-> 1 inc inc)   (es "(-> 1 inc inc)"   lib/macros {:inc inc})) "const init, naked form, naked form")
+  (is (= (-> 1 (inc) inc) (es "(-> 1 (inc) inc)" lib/macros {:inc inc})) "const init, list form, naked form")
+  (is (= (-> 1 (str 2)
+           (str 3))       (es "(-> 1 (str 2) (str 3))" lib/macros {:str str})) "const init, list form w/arg, list form w/arg"))
+
+
+(deftest test-macro-equiv->>
+  (is (= (->> 1 inc)       (es "(->> 1 inc)"       lib/macros {:inc inc})) "const init, naked form")
+  (is (= (->> 1 (inc))     (es "(->> 1 (inc))"     lib/macros {:inc inc})) "const init, list form")
+  (is (= (->> 1 (str 2))   (es "(->> 1 (str 2))"   lib/macros {:str str})) "const init, list form w/1 arg")
+  (is (= (->> 1 inc inc)   (es "(->> 1 inc inc)"   lib/macros {:inc inc})) "const init, naked form, naked form")
+  (is (= (->> 1 (inc) inc) (es "(->> 1 (inc) inc)" lib/macros {:inc inc})) "const init, list form, naked form")
+  (is (= (->> 1 (str 2)
+           (str 3))        (es "(->> 1 (str 2) (str 3))" lib/macros {:str str})) "const init, list form w/arg, list form w/arg"))
+
+
 (defn test-ns-hook
   []
   (println "\n** Running tests for quiddity.lib-test **")
@@ -618,4 +638,6 @@
   (test-macro-equiv-condp)
   (test-macro-equiv-case)
   (test-macro-equiv-and)
-  (test-macro-equiv-or))
+  (test-macro-equiv-or)
+  (test-macro-equiv->)
+  (test-macro-equiv->>))

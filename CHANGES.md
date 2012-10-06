@@ -10,11 +10,24 @@
 ## 2012-September-[TODO] / 0.2.0
 
 * Destructuring primitives
-* Retrofit destructuring into `let` `for-each`
-* Conditional assignment macros: `if-let` `when-let` with destructuring
-* Conditional macros: `cond` `condp` `case`
-* [TODO] Thread `->` and `->>` macros
+* Retrofit destructuring into
+  * `let`
+  * `for-each`
+* Conditional assignment macros with destructuring
+  * `if-let`
+  * `when-let`
+* Conditional macros
+  * `cond`
+  * `condp`
+  * `case`
+* Thread macros
+  * `->`
+  * `->>`
 * [TODO] Creating functions `fn` and `fn*` macros
+* [TODO] Exception handling
+  * `try`
+  * `catch`
+  * `finally`
 
 ## 2012-August-30 / 0.1.0
 
