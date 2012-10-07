@@ -294,6 +294,24 @@
     (is (= 11 (es "(when-not (a b) (+ 2 x) (+ 1 x))" {:a identity :b false :+ + :x 10} lib/macros)) "falsy test-expr)")))
 
 
+(deftest test-macro-equiv-while
+  (is (= (let [ea (atom 10)
+               ec (atom 0)
+               er (while (pos? @ea)
+                    (swap! ea dec)
+                    (swap! ec inc))]
+           [@ea @ec er])
+         (es "(let [ea (atom 10)
+                    ec (atom 0)
+                    er (while (pos? @ea)
+                         (swap! ea dec)
+                         (swap! ec inc))]
+                [@ea @ec er])"
+             lib/all
+             {:atom atom :pos? pos? :swap! swap! :inc inc :dec dec}))
+      "use-case with atom"))
+
+
 (deftest test-macro-equiv-let
   (testing "let (without body)"
     (is (nil? (es "(let [a 1])" lib/macros))     "1 var")
@@ -630,6 +648,7 @@
   (test-macro-equiv-if-not)
   (test-macro-equiv-when)
   (test-macro-equiv-when-not)
+  (test-macro-equiv-while)
   (test-macro-equiv-let)
   (test-macro-equiv-if-let)
   (test-macro-equiv-when-let)

@@ -145,6 +145,13 @@
     (apply e-do maps forms)))
 
 
+(defn e-while
+  "Evaluator re-implementation of the `while` macro."
+  [maps test & forms]
+  (while (core/evaluate test maps)
+    (apply e-do maps forms)))
+
+
 (defn e-let
   "Evaluator re-implementation of the `let` macro."
   [maps bindings & forms] {:pre [(seq bindings)
@@ -283,6 +290,7 @@
 (def macros {:if-not   (core/make-evaluator e-if-not)
              :when     (core/make-evaluator e-when)
              :when-not (core/make-evaluator e-when-not)
+             :while    (core/make-evaluator e-while)
              :let      (core/make-evaluator e-let)
              :if-let   (core/make-evaluator e-if-let)
              :when-let (core/make-evaluator e-when-let)
@@ -293,12 +301,18 @@
              :and      (core/make-evaluator e-and)
              :or       (core/make-evaluator e-or)
              :->       (core/make-evaluator e->)
-             :->>      (core/make-evaluator e->>)})
+             :->>      (core/make-evaluator e->>)
+             })
 
 
 ;;----- functions -----
 
 
+(def fns {:clojure.core/deref deref  ; for Clojure reader
+          :deref deref               ; for ClojureScript reader
+          })
+
+
 ;; ----- everything merged -----
 
-(def all (merge unsupported special-forms macros))
+(def all (merge unsupported special-forms macros fns))

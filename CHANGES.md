@@ -7,7 +7,7 @@
 * [TODO] Implement `doseq` macro
 * [TODO] Namespace/qualified symbols support
 
-## 2012-September-[TODO] / 0.2.0
+## 2012-October-[TODO] / 0.2.0
 
 * Destructuring primitives
 * Retrofit destructuring into
@@ -20,6 +20,8 @@
   * `cond`
   * `condp`
   * `case`
+  * `while`
+* Uniform deref (@) support - as a built-in lib fn
 * Thread macros
   * `->`
   * `->>`
