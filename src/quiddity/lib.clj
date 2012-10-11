@@ -17,9 +17,6 @@
                   :binding (no-support-for "`def`, `var`, `binding`")
                   :def     (no-support-for "`def`, `var`, `binding`")
                   :var     (no-support-for "`def`, `var`, `binding`")
-                  ;; creating functions
-                  :fn      (no-support-for "creating functions")
-                  :fn*     (no-support-for "creating functions")
                   ;; loop, recur
                   :loop    (no-support-for "`loop` and `recur`")
                   :recur   (no-support-for "`loop` and `recur`")
@@ -287,6 +284,73 @@
                more)))))
 
 
+(defn e-fn
+  "Re-implementation of the `fn` (and `fn*`) macro as an evaluator."
+  [maps fn-name & more]
+  (if-not (symbol? fn-name)
+    (apply e-fn maps '_ fn-name more)
+    (if-not (list? (first more))
+      (e-fn maps fn-name (apply list more))
+      ;; here we have "arg-vector followed-by body" as a list
+      (let [variadic -1
+            err-hand core/*error-handler*
+            va-error #(err-hand
+                        "Can't have fixed arity function with more params than variadic function")
+            split-fn (fn [[args-vec & body]] ;split fn decl into [min-argc spec]
+                       (when-not (vector? args-vec)
+                         (err-hand
+                           (str "Expected arg vector, found " (pr-str args-vec))))
+                       (let [n (count (take-while (partial not= '&) args-vec))
+                             v (some (partial = '&) args-vec)]
+                         [(if v variadic n) {:args-vec args-vec
+                                             :min-argc n
+                                             :body body}]))
+            m-bodies (reduce (fn [m decl]
+                               (let [[n spec] (split-fn decl)]
+                                 (when (contains? m n)
+                                   (err-hand
+                                     (format "Can't have %s: %s"
+                                             (if (neg? n)
+                                               "more than 1 variadic overload"
+                                               "2 overloads with same arity")
+                                             (pr-str more))))
+                                 (if (neg? n)
+                                   (when (some #(< (:min-argc spec) %)
+                                               (remove neg? (keys m)))
+                                     (va-error))
+                                   (when (and (contains? m variadic)
+                                              (> n (get m variadic)))
+                                     (va-error)))
+                                 (merge m {n spec})))
+                             {} more)
+            maps-atm (atom maps)
+            return-f (fn [& args]
+                       (let [n (count args)
+                             a @maps-atm
+                             h #(let [spec (get m-bodies %)]
+                                  (binding [core/*error-handler* err-hand]
+                                    (apply e-do
+                                           (-> a
+                                             (i-destructure (:args-vec spec) args)
+                                             (cons a))
+                                           (:body spec))))]
+                         (cond
+                           ;; arity match
+                           (contains? m-bodies n)
+                           (h n)
+                           ;; variadic match
+                           (and (contains? m-bodies variadic)
+                                (>= n (:min-argc (get m-bodies variadic))))
+                           (h variadic)
+                           ;; no match
+                           :otherwise
+                           (err-hand
+                             (format "Wrong number of args (%d) passed to: %s"
+                                     n fn-name)))))]
+        (swap! maps-atm (partial cons (i-destructure maps fn-name return-f)))
+        return-f))))
+
+
 (def macros {:if-not   (core/make-evaluator e-if-not)
              :when     (core/make-evaluator e-when)
              :when-not (core/make-evaluator e-when-not)
@@ -302,6 +366,8 @@
              :or       (core/make-evaluator e-or)
              :->       (core/make-evaluator e->)
              :->>      (core/make-evaluator e->>)
+             :fn       (core/make-evaluator e-fn)
+             :fn*      (core/make-evaluator e-fn)
              })
 
 

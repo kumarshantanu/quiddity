@@ -31,11 +31,6 @@
     (is (thrown-with-msg? RuntimeException
                           (re-quote "No support for `def`, `var`, `binding`")
                           (es "(binding [*a* 2] 1)" lib/unsupported)) "binding"))
-  (testing "creating functions"
-    ;; See 'creating anon fns' in quiddity.lib-jvm-test and quiddity-cljs-test
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for creating functions")
-                          (es "(fn [] true)" lib/unsupported)) "fn"))
   (testing "loop-recur"
     (is (thrown-with-msg? RuntimeException
                           (re-quote "No support for `loop` and `recur`")
@@ -639,6 +634,71 @@
            (str 3))        (es "(->> 1 (str 2) (str 3))" lib/macros {:str str})) "const init, list form w/arg, list form w/arg"))
 
 
+(deftest test-macro-equiv-fn
+  (testing "simple, no overload"
+    (let [f (es "(fn [])" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (nil? (f)) "returns nil (no body)"))
+    (let [f (es "(fn [] :a)" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (= :a (f)) "returns :a (single body item)"))
+    (let [f (es "(fn [] :a :b)" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (= :b (f)) "returns :b (long body)"))
+    (let [f (es "(fn [b] [:a b])" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (= [:a 2] (f 2)) "returns [:a 2] (one arg)"))
+    (is (= 30 (es "(let [r (fn [a b] (+ a b))] (r 10 20))" lib/macros {:+ +}))
+        "fn in an expression")
+    )
+  (testing "overload"
+    (let [f (es "(fn ([]))" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (nil? (f)) "returns nil (no real overload, only overload form)"))
+    (let [f (es "(fn ([] :a) ([b] b))" lib/macros)]
+      (is (fn? f)    "is fn?")
+      (is (= :a (f))    "returns :a (overload)")
+      (is (= :b (f :b)) "returns :b (overload)"))
+    (is (= [25 30] (es "(let [r (fn ([b] (+ 10 b)) ([a b] (+ a b)))] [(r 15) (r 10 20)])"
+                       lib/macros {:+ +})) "fn in an expression"))
+  (testing "destructuring"
+    (let [f (es "(fn [[a b]] {a b})" lib/macros)]
+      (is (fn? f)                 "is fn?")
+      (is (= {10 20} (f [10 20])) "returns destructured values"))
+    (let [f (es "(fn [& {:keys [a b] :or {b 20}}] {a b})" lib/macros)]
+      (is (fn? f)               "is fn?")
+      (is (= {10 20} (f :a 10)) "returns destructured optional values"))
+    (is (= 30 (es "(let [r (fn [[a b]] (+ a b))] (r [10 20]))"
+                  lib/macros {:+ +})) "fn in an expression"))
+  (testing "named, with recursion"
+    (let [f (es "(fn sum [a] (if (> a 0) (+ a (sum (dec a))) a))"
+                lib/all {:> > :+ + :dec dec})]
+      (is (fn? f)     "is fn?")
+      (is (= 6 (f 3)) "returns recursively computed values"))
+    (is (= 6 (es "(apply (fn sum [a] (if (> a 0) (+ a (sum (dec a))) a)) [3])"
+                 lib/all {:> > :+ + :apply apply :dec dec})) "fn in an expression"))
+  (testing "malformed fns, unhappy tests"
+    (is (thrown-with-msg? RuntimeException (re-quote "Expected arg vector, found :e")
+                          (es "(fn :e)" lib/all)) "missing arg vector")
+    (let [f (es "(fn [:e])" lib/all)]
+      (is (thrown-with-msg? RuntimeException (re-quote "Unsupported binding form: :e")
+                            (f 10)) "invalid binding form"))
+    (let [f (es "(fn [a] b)" lib/all)]
+      (is (thrown-with-msg? RuntimeException #"No such key 'b' in env keys.*"
+                            (f 10)) "undefined symbol")))
+  (testing "arity/overload errors, unhappy tests"
+    (is (thrown-with-msg? RuntimeException #"Can't have 2 overloads with same arity.*"
+                          (es "(fn ([] :a)([] :b))" lib/all)) "2 overloads with arity 0")
+    (is (thrown-with-msg? RuntimeException #"Can't have 2 overloads with same arity.*"
+                          (es "(fn ([a] a)([b] b))" lib/all)) "2 overloads with arity 1")
+    (is (thrown-with-msg? RuntimeException #"Can't have more than 1 variadic overload.*"
+                          (es "(fn ([& c])([& c]))" lib/all)) "zero fixed and 2 variadic overload")
+    (is (thrown-with-msg? RuntimeException #"Can't have more than 1 variadic overload.*"
+                          (es "(fn ([a & c])([b & c]))" lib/all)) "one fixed and 2 variadic overload")
+    (is (thrown-with-msg? RuntimeException (re-quote "Can't have fixed arity function with more params than variadic function")
+                          (es "(fn ([a c])([b & c]))" lib/all)) "one fixed fn with more params than variadic function")))
+
+
 (defn test-ns-hook
   []
   (println "\n** Running tests for quiddity.lib-test **")
@@ -659,4 +719,5 @@
   (test-macro-equiv-and)
   (test-macro-equiv-or)
   (test-macro-equiv->)
-  (test-macro-equiv->>))
+  (test-macro-equiv->>)
+  (test-macro-equiv-fn))

@@ -2,10 +2,15 @@
 
 ## TODO
 
+* [TODO] Ring middleware/handler to accept code via POST and emit EDN result
 * [TODO] As much as listed here: http://clojure.org/macros
 * [TODO] Implement `for` macro; deprecate/remove `for-each`
 * [TODO] Implement `doseq` macro
 * [TODO] Namespace/qualified symbols support
+* [TODO] Exception handling
+  * `try`
+  * `catch`
+  * `finally`
 
 ## 2012-October-[TODO] / 0.2.0
 
@@ -21,15 +26,13 @@
   * `condp`
   * `case`
   * `while`
-* Uniform deref (@) support - as a built-in lib fn
+* Uniform deref (`@`) support - as a built-in lib fn
 * Thread macros
   * `->`
   * `->>`
-* [TODO] Creating functions `fn` and `fn*` macros
-* [TODO] Exception handling
-  * `try`
-  * `catch`
-  * `finally`
+* Creating functions (macros)
+  * `fn`
+  * `fn*` (anonymous functions; for Clojure[JVM] reader only)
 
 ## 2012-August-30 / 0.1.0
 
