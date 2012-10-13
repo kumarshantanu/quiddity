@@ -5,7 +5,7 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   ;; :dependencies [[org.clojure/clojure "1.4.0"]]
   :warn-on-reflection true
-  :plugins [[lein-cljsbuild "0.2.6"]]
+  :plugins [[lein-cljsbuild "0.2.8"]]
   :profiles {:tst {:dependencies [[clip-test "0.1.0"]]}
              :jst {:source-paths ["src" "test"]
                    ;; Enable the lein hooks for: clean, compile, test, and jar.
