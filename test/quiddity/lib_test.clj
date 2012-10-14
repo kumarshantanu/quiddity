@@ -503,8 +503,7 @@
 (deftest test-macro-equiv-condp
   (testing "condp (no clauses)"
     (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
-                          (es "(condp = 1)" {:= =} lib/macros)) "no clauses")
-    )
+                          (es "(condp = 1)" {:= =} lib/macros)) "no clauses"))
   (testing "condp (constant test and value)"
     (is (= (condp = 1 1 1)         (es "(condp = 1 1 1)"         {:= =} lib/macros)) "matching")
     (is (= (condp = 1 2 2 1 1)     (es "(condp = 1 2 2 1 1)"     {:= =} lib/macros)) "non-matching, matching")
@@ -649,8 +648,7 @@
       (is (fn? f)    "is fn?")
       (is (= [:a 2] (f 2)) "returns [:a 2] (one arg)"))
     (is (= 30 (es "(let [r (fn [a b] (+ a b))] (r 10 20))" lib/macros {:+ +}))
-        "fn in an expression")
-    )
+        "fn in an expression"))
   (testing "overload"
     (let [f (es "(fn ([]))" lib/macros)]
       (is (fn? f)    "is fn?")
