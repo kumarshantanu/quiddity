@@ -3,9 +3,8 @@
 ## TODO
 
 * [TODO] Ring middleware/handler to accept code via POST and emit EDN result
+* [TODO] Implement `for` macro (deprecate `for-each`), `doseq`, `with-open`
 * [TODO] As much as listed here: http://clojure.org/macros
-* [TODO] Implement `for` macro; deprecate/remove `for-each`
-* [TODO] Implement `doseq` macro
 * [TODO] Namespace/qualified symbols support
 * [TODO] Exception handling
   * `try`
