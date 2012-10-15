@@ -9,11 +9,11 @@ with limited forms using user-specified _environment_.
 
 On Clojars: https://clojars.org/quiddity
 
-Leiningen dependency: `[quiddity "0.1.0"]`
+Leiningen dependency: `[quiddity "0.2.0"]`
 
 Supported Clojure versions: 1.2, 1.3, 1.4, 1.5
 
-Tested with lein-cljsbuild version: 0.2.6
+Tested with lein-cljsbuild version: 0.2.8
 
 
 ### Evaluation
@@ -59,13 +59,13 @@ keywords as the keys. For example, `(foo 42)` will look for both `'foo` and
 
 Quiddity supports only limited forms in the S-expressions it evaluates. The
 following are not supported (note that shortcuts to special forms eg. `'`, `#'`,
-`#(...)` etc. are automatically expanded by the reader):
+`#(...)`, `@` etc. are automatically expanded by the reader):
 
-* Special forms
-* Macros
-* Destructuring
+* Special forms (some are re-implemented using evaluator, see _Evaluator_)
+* Macros (some are re-implemented using evaluator, see _Evaluator_)
+* Destructuring (re-implemented using evaluator, see _Evaluator_)
 * Classnames (they are treated as ordinary symbols)
-* Creating functions
+* Creating functions (re-implemented using evaluator, see _Evaluator_)
 * Namespaces
 
 
@@ -87,17 +87,26 @@ during invocation.
 The following evaluators are provided in `quiddity.lib/all` (map):
 
 * Special forms equivalent
-  * `if`
   * `do`
+  * `if`
   * `quote`
 * Macros equivalent
+  * `->`
+  * `->>`
+  * `and`
+  * `case`
+  * `cond`
+  * `condp`
+  * `fn` with destructuring, without pre and post conditions
+  * `for-each`  with destructuring (same as `for` without `:let`, `:when`, `:while` forms)
   * `if-not`
+  * `let` with destructuring
+  * `or`
   * `when`
   * `when-not`
-  * `let`
-  * `for-each` (same as `for` without `:let`, `:when`, `:while` forms)
-  * `and`
-  * `or`
+  * `while`
+* Function equivalent
+  * `deref` a.k.a `@`
 
 
 ## Development
