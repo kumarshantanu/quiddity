@@ -25,6 +25,6 @@
              :1.2 {:dependencies [[org.clojure/clojure "1.2.1"]]}
              :1.3 {:dependencies [[org.clojure/clojure "1.3.0"]]}
              :1.4 {:dependencies [[org.clojure/clojure "1.4.0"]]}
-             :1.5 {:dependencies [[org.clojure/clojure "1.5.0-alpha4"]]}}
+             :1.5 {:dependencies [[org.clojure/clojure "1.5.0-alpha6"]]}}
   :aliases {"all" ["with-profile" "1.2,tst:1.3,tst:1.4,tst:1.5,tst"]
             "dev" ["with-profile" "1.4,tst,jst"]})
