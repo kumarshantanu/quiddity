@@ -1,4 +1,4 @@
-(defproject quiddity "0.2.0-SNAPSHOT"
+(defproject quiddity "0.2.0"
   :description "An S-Expression evaluation library for Clojure and ClojureScript"
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
@@ -6,7 +6,7 @@
   ;; :dependencies [[org.clojure/clojure "1.4.0"]]
   :warn-on-reflection true
   :plugins [[lein-cljsbuild "0.2.8"]]
-  :profiles {:tst {:dependencies [[clip-test "0.1.0"]]}
+  :profiles {:tst {:dependencies [[clip-test "0.2.0"]]}
              :jst {:source-paths ["src" "test"]
                    ;; Enable the lein hooks for: clean, compile, test, and jar.
                    :hooks [leiningen.cljsbuild]

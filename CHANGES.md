@@ -11,7 +11,7 @@
   * `catch`
   * `finally`
 
-## 2012-October-[TODO] / 0.2.0
+## 2012-October-16 / 0.2.0
 
 * Destructuring primitives
 * Retrofit destructuring into
