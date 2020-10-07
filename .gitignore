@@ -10,3 +10,6 @@ pom.xml
 .lein-plugins
 .classpath
 .project
+.crossover-cljs/
+.lein-cljsbuild-compiler-0/
+.settings/
