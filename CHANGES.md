@@ -11,6 +11,15 @@
   * `catch`
   * `finally`
 
+## [WIP] 0.3.0 / 2020-October-??
+
+* [Todo] Compatibility with recent Clojure/Script versions
+* [Todo - BREAKING CHANGE] Drop support for Clojure 1.6 and earlier
+* Lifecycle control
+  * [Todo] Stop evaluation
+  * [Todo] Pause and resume evaluation
+
+
 ## 2012-October-16 / 0.2.0
 
 * Destructuring primitives
