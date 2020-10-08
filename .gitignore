@@ -13,3 +13,4 @@ pom.xml
 .crossover-cljs/
 .lein-cljsbuild-compiler-0/
 .settings/
+.lein-repl-history
