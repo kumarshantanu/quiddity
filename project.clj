@@ -1,6 +1,6 @@
 (defproject quiddity "0.3.0-SNAPSHOT"
   :description "An S-Expression evaluation library for Clojure and ClojureScript"
-  :url "http://example.com/FIXME"
+  :url "https://github.com/kumarshantanu/quiddity"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   ;; :dependencies [[org.clojure/clojure "1.4.0"]]
