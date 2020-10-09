@@ -22,7 +22,7 @@
 - Documentation
   - Add Cljdoc badge
   - Reformat docstring for Cljdoc
-  - [Todo] Include a documentation page
+  - Include a documentation page
 
 
 ## 2012-October-16 / 0.2.0
