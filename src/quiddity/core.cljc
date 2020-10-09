@@ -10,13 +10,9 @@
 (ns quiddity.core
   "Core evaluation functions."
   (:require
-    [quiddity.internal :as i]))
-
-
-(def ^{:dynamic true
-       :doc "Error handler that accepts error message and deals with it"}
-      *error-handler* (fn [message]
-                        (assert (not "Must override *error-handler* before use"))))
+    [quiddity.internal :as i])
+  #?(:clj (:import
+            [clojure.lang IDeref])))
 
 
 (defn env-get
@@ -30,8 +26,8 @@
                       (and (contains? m k)         [(get m k)])))
                 maps)]
     (if r (first r)
-      (*error-handler* (i/sformat "No such key '%s' in env keys %s" (str k)
-                         (pr-str (map keys maps)))))))
+      (i/*error-handler* (i/sformat "No such key '%s' in env keys %s" (str k)
+                           (pr-str (map keys maps)))))))
 
 
 (defn evaluator?
@@ -50,25 +46,37 @@
 
 
 (defn evaluate
-  "Evaluate S-expression using specified env maps."
+  "Evaluate S-expression using specified env maps. Options:
+
+  | Kwargs            | Value type       | Description             |
+  |-------------------|------------------|-------------------------|
+  |`:error-handler`   |`(fn [msg])`      | Error handler function  |
+  |`:stop-evaluation?`|deref'able boolean| Whether stop evaluation |"
   ([form maps]
     {:pre [(every? map? maps)]}
-    (cond
-      ;; symbol, hence lookup in env
-      (symbol? form)    (env-get form maps)
-      ;; function call
-      (and (or (list? form)
+    (or
+      (i/stop-if-requested)
+      (cond
+        ;; symbol, hence lookup in env
+        (symbol? form)    (env-get form maps)
+        ;; function call
+        (and (or (list? form)
                (seq? form))
-           (seq form))  (let [func (evaluate (first form) maps)
-                              tail (rest form)]
-                          (if (evaluator? func)
-                            (apply (first func) maps tail)
-                            (apply func (i/realize-coll tail maps evaluate))))
-      ;; any collection
-      (coll? form)      (i/realize-coll form maps evaluate)
-      ;; constant
-      :otherwise        form))
-  ([form maps error-handler]
-    {:pre [(fn? error-handler)]}
-    (binding [*error-handler* error-handler]
-      (evaluate form maps))))
+          (seq form))  (let [func (evaluate (first form) maps)
+                             tail (rest form)]
+                         (if (evaluator? func)
+                           (apply (first func) maps tail)
+                           (apply func (i/realize-coll tail maps evaluate))))
+        ;; any collection
+        (coll? form)      (i/realize-coll form maps evaluate)
+        ;; constant
+        :otherwise        form)))
+  ([form maps {:keys [error-handler
+                      stop-evaluation?]
+               :as options}]
+    (cond
+      error-handler    (binding [i/*error-handler* error-handler]
+                         (evaluate form maps (dissoc options :error-handler)))
+      stop-evaluation? (binding [i/*stop-evaluation?* stop-evaluation?]
+                         (evaluate form maps (dissoc options :stop-evaluation?)))
+      :otherwise       (evaluate form maps))))

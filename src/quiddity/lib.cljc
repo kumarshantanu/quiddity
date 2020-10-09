@@ -19,7 +19,7 @@
 
 (def unsupported (let [no-support-for (fn [msg]
                                         (core/make-evaluator (fn [& _]
-                                                               (core/*error-handler* (str "No support for " msg)))))]
+                                                               (i/*error-handler* (str "No support for " msg)))))]
                    {;; assertion
                     :assert  (no-support-for "`assert`")
                     ;; def, var, binding
@@ -75,9 +75,9 @@
   [maps local value]
   (let [ds  (partial i-destructure maps)
         rmm (fn [f coll & more] (reduce merge {} (apply map f coll more)))
-        afa #(core/*error-handler*
+        afa #(i/*error-handler*
                "Unsupported binding form, only :as can follow & parameter")
-        ubf #(core/*error-handler* (str "Unsupported binding form: " %))]
+        ubf #(i/*error-handler* (str "Unsupported binding form: " %))]
     (cond
       (= '_ local)    {}
       (symbol? local) {(keyword local) value}
@@ -216,7 +216,7 @@
   [maps pred-form expr-form & clauses]
   (let [pred (core/evaluate pred-form maps)
         expr (core/evaluate expr-form maps)
-        nmce #(core/*error-handler* (str "No matching clause: " expr))
+        nmce #(i/*error-handler* (str "No matching clause: " expr))
         chop #(if (and (= :>> (second %)) (>= (count %) 3))
                 (let [[k _ v & more] %] [k true  v more])
                 (let [[k   v & more] %] [k false v more]))]
@@ -238,7 +238,7 @@
   [maps expr-form & clauses]
   (let [expr (core/evaluate expr-form maps)
         exp= (partial = expr)
-        nmce #(core/*error-handler* (str "No matching clause: " expr))]
+        nmce #(i/*error-handler* (str "No matching clause: " expr))]
     (if (seq clauses)
       (loop [[k v & more] clauses]
         (cond (and (not (list? k)) (exp= k)) (core/evaluate v maps)
@@ -302,7 +302,7 @@
       (e-fn maps fn-name (apply list more))
       ;; here we have "arg-vector followed-by body" as a list
       (let [variadic -1
-            err-hand core/*error-handler*
+            err-hand i/*error-handler*
             va-error #(err-hand
                         "Can't have fixed arity function with more params than variadic function")
             split-fn (fn [[args-vec & body]] ;split fn decl into [min-argc spec]
@@ -337,7 +337,7 @@
                        (let [n (count args)
                              a @maps-atm
                              h #(let [spec (get m-bodies %)]
-                                  (binding [core/*error-handler* err-hand]
+                                  (binding [i/*error-handler* err-hand]
                                     (apply e-do
                                            (-> a
                                              (i-destructure (:args-vec spec) args)

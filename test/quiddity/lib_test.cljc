@@ -15,7 +15,9 @@
     #?(:cljs [quiddity.core :as quid :include-macros true]
         :clj [quiddity.core :as quid])
     #?(:cljs [quiddity.lib  :as lib :include-macros true]
-        :clj [quiddity.lib  :as lib]))
+        :clj [quiddity.lib  :as lib])
+    #?(:cljs [quiddity.internal :as i :include-macros true]
+        :clj [quiddity.internal :as i]))
   #?(:clj (:import
             [clojure.lang ExceptionInfo])))
 
@@ -123,7 +125,7 @@
 
 (defn ds
   [local value]
-  (binding [quid/*error-handler* throw-msg]
+  (binding [i/*error-handler* throw-msg]
     (lib/i-destructure [] local value)))
 
 
