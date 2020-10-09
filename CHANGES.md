@@ -11,6 +11,20 @@
   * `catch`
   * `finally`
 
+
+## [WIP] 0.3.0 / 2020-October-??
+
+- Compatibility with recent Clojure/Script versions
+- [BREAKING CHANGE] Drop support for Clojure 1.6 and earlier
+- [BREAKING CHANGE] Move `quiddity.core/realize-coll` to internal namespace
+- [BREAKING CHANGE] Arity change in `quiddity.core/evaluate` - accept options argument
+  - Support for stopping evaluation
+- Documentation
+  - Add Cljdoc badge
+  - Reformat docstring for Cljdoc
+  - Include a documentation page
+
+
 ## 2012-October-16 / 0.2.0
 
 * Destructuring primitives

@@ -1,21 +1,34 @@
+;   Copyright (c) Shantanu Kumar. All rights reserved.
+;   The use and distribution terms for this software are covered by the
+;   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+;   which can be found in the file LICENSE at the root of this distribution.
+;   By using this software in any fashion, you are agreeing to be bound by
+;   the terms of this license.
+;   You must not remove this notice, or any other, from this software.
+
+
 (ns quiddity.core-test
-  (:require [quiddity.core :as core])
-  (:use [clip-test.testutil;*CLJSBUILD-REMOVE*;-cljs
-         :only [;*CLJSBUILD-REMOVE*;RuntimeException
-                read-str re-quote throw-msg try-catch error-msg]])
-  (:use;*CLJSBUILD-REMOVE*;-macros
-    [clip-test.core;*CLJSBUILD-REMOVE*;-cljs
-     :only [deftest testing is
-            ;*CLJSBUILD-REMOVE*;thrown? thrown-with-msg?
-            ]]))
+  (:require
+    #?(:cljs [cljs.test    :refer-macros [deftest is testing]]
+        :clj [clojure.test :refer        [deftest is testing]])
+    #?(:cljs [cljs.reader :refer [read-string]])
+    #?(:cljs [quiddity.core :as quid :include-macros true]
+        :clj [quiddity.core :as quid]))
+  #?(:clj (:import
+            [clojure.lang ExceptionInfo])))
 
 
-(defn rs [s] (read-str s))
+(defn rs [s] (read-string s))
+
+
+(defn throw-msg
+  [msg]
+  (throw (ex-info msg {})))
 
 
 (defn ev
   [form & maps]
-  (core/evaluate form maps #(throw-msg %)))
+  (quid/evaluate form maps #(throw-msg %)))
 
 
 (deftest test-primitives
@@ -37,7 +50,7 @@
 
 
 (deftest test-quoted
-  (let [q {:quote (core/make-evaluator (fn [maps x] x))}]
+  (let [q {:quote (quid/make-evaluator (fn [maps x] x))}]
     (testing "Atom (not Clojure atom, but rather Lisp atom in lexical sense)"
       (is (= -999 (ev `'-999 q)) "-ve integer")
       (is (= 1000 (ev `'1000 q)) "+ve integer")
@@ -76,17 +89,17 @@
 
 (deftest test-missing
   (let [e (fn [form & maps]
-            (core/evaluate form maps #(throw-msg %)))]
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No such key 'a' in env keys ()")
+            (quid/evaluate form maps #(throw-msg %)))]
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No such key 'a' in env keys ()"
                           (e (rs "a")))
         "missing val for atom")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No such key 'inc' in env keys ()")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No such key 'inc' in env keys ()"
                           (e (rs "(inc a)")))
         "missing val for fn name")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No such key 'a' in env keys ((:inc))")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No such key 'a' in env keys \(\(\:inc\)\)"
                           (e (rs "(inc a)") {:inc inc}))
         "missing val for fn arg")))
 
@@ -103,12 +116,12 @@
                                          :v (constantly 9)}))   "in map"))
   (testing "Evaluator"
     (is (= 'n (ev (rs "(quote n)")
-                  {:quote (core/make-evaluator
+                  {:quote (quid/make-evaluator
                             (fn [maps x] x))})) "evaluator w/arg")
     (is (= 10 (ev (rs "(do (inc n))")
-                  {:do (core/make-evaluator
+                  {:do (quid/make-evaluator
                          (fn [maps & forms]
-                           (last (map #(core/evaluate % maps) forms))))
+                           (last (map #(quid/evaluate % maps) forms))))
                    :inc inc
                    :n 9}))                      "evaluator w/sexp")))
 

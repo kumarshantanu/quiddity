@@ -1,29 +1,38 @@
+;   Copyright (c) Shantanu Kumar. All rights reserved.
+;   The use and distribution terms for this software are covered by the
+;   Eclipse Public License 1.0 (http://opensource.org/licenses/eclipse-1.0.php)
+;   which can be found in the file LICENSE at the root of this distribution.
+;   By using this software in any fashion, you are agreeing to be bound by
+;   the terms of this license.
+;   You must not remove this notice, or any other, from this software.
+
+
 (ns quiddity.lib
-  (:require [quiddity.core :as core]))
+  "Library of pre-built functions and evaluators. Useful for providing an evaluation 'environment'."
+  (:require
+    [quiddity.core :as core]
+    [quiddity.internal :as i]))
 
 
 ;;----- evaluators | unsupported | special forms and macros that use them -----
 
 
-(defn no-support-for
-  [msg] {:pre [(string? msg)]}
-  (core/make-evaluator (fn [& _]
-                         (core/*error-handler* (str "No support for " msg)))))
-
-
-(def unsupported {;; assertion
-                  :assert  (no-support-for "`assert`")
-                  ;; def, var, binding
-                  :binding (no-support-for "`def`, `var`, `binding`")
-                  :def     (no-support-for "`def`, `var`, `binding`")
-                  :var     (no-support-for "`def`, `var`, `binding`")
-                  ;; loop, recur
-                  :loop    (no-support-for "`loop` and `recur`")
-                  :recur   (no-support-for "`loop` and `recur`")
-                  ;; try, catch, finally
-                  :try     (no-support-for "`try`, `catch`, `finally`")
-                  :catch   (no-support-for "`try`, `catch`, `finally`")
-                  :finally (no-support-for "`try`, `catch`, `finally`")})
+(def unsupported (let [no-support-for (fn [msg]
+                                        (core/make-evaluator (fn [& _]
+                                                               (i/*error-handler* (str "No support for " msg)))))]
+                   {;; assertion
+                    :assert  (no-support-for "`assert`")
+                    ;; def, var, binding
+                    :binding (no-support-for "`def`, `var`, `binding`")
+                    :def     (no-support-for "`def`, `var`, `binding`")
+                    :var     (no-support-for "`def`, `var`, `binding`")
+                    ;; loop, recur
+                    :loop    (no-support-for "`loop` and `recur`")
+                    :recur   (no-support-for "`loop` and `recur`")
+                    ;; try, catch, finally
+                    :try     (no-support-for "`try`, `catch`, `finally`")
+                    :catch   (no-support-for "`try`, `catch`, `finally`")
+                    :finally (no-support-for "`try`, `catch`, `finally`")}))
 
 
 ;;----- evaluators | special forms | http://clojure.org/special_forms -----
@@ -66,9 +75,9 @@
   [maps local value]
   (let [ds  (partial i-destructure maps)
         rmm (fn [f coll & more] (reduce merge {} (apply map f coll more)))
-        afa #(core/*error-handler*
+        afa #(i/*error-handler*
                "Unsupported binding form, only :as can follow & parameter")
-        ubf #(core/*error-handler* (str "Unsupported binding form: " %))]
+        ubf #(i/*error-handler* (str "Unsupported binding form: " %))]
     (cond
       (= '_ local)    {}
       (symbol? local) {(keyword local) value}
@@ -207,7 +216,7 @@
   [maps pred-form expr-form & clauses]
   (let [pred (core/evaluate pred-form maps)
         expr (core/evaluate expr-form maps)
-        nmce #(core/*error-handler* (str "No matching clause: " expr))
+        nmce #(i/*error-handler* (str "No matching clause: " expr))
         chop #(if (and (= :>> (second %)) (>= (count %) 3))
                 (let [[k _ v & more] %] [k true  v more])
                 (let [[k   v & more] %] [k false v more]))]
@@ -229,7 +238,7 @@
   [maps expr-form & clauses]
   (let [expr (core/evaluate expr-form maps)
         exp= (partial = expr)
-        nmce #(core/*error-handler* (str "No matching clause: " expr))]
+        nmce #(i/*error-handler* (str "No matching clause: " expr))]
     (if (seq clauses)
       (loop [[k v & more] clauses]
         (cond (and (not (list? k)) (exp= k)) (core/evaluate v maps)
@@ -263,7 +272,7 @@
         (recur (if (or (list? form-1) (seq? form-1))
                  (let [[f & args] form-1]
                    (apply (core/evaluate f maps) value
-                          (core/realize-coll args maps)))
+                          (i/realize-coll args maps core/evaluate)))
                  ((core/evaluate form-1 maps) value))
                more)))))
 
@@ -279,7 +288,7 @@
         (recur (if (or (list? form-1) (seq? form-1))
                  (let [[f & args] form-1]
                    (apply (core/evaluate f maps)
-                          (concat (core/realize-coll args maps) [value])))
+                          (concat (i/realize-coll args maps core/evaluate) [value])))
                  ((core/evaluate form-1 maps) value))
                more)))))
 
@@ -293,7 +302,7 @@
       (e-fn maps fn-name (apply list more))
       ;; here we have "arg-vector followed-by body" as a list
       (let [variadic -1
-            err-hand core/*error-handler*
+            err-hand i/*error-handler*
             va-error #(err-hand
                         "Can't have fixed arity function with more params than variadic function")
             split-fn (fn [[args-vec & body]] ;split fn decl into [min-argc spec]
@@ -306,20 +315,21 @@
                                              :min-argc n
                                              :body body}]))
             m-bodies (reduce (fn [m decl]
-                               (let [[n spec] (split-fn decl)]
+                               (let [[n spec] (split-fn decl)
+                                     n (long n)]
                                  (when (contains? m n)
                                    (err-hand
-                                     (format "Can't have %s: %s"
-                                             (if (neg? n)
-                                               "more than 1 variadic overload"
-                                               "2 overloads with same arity")
-                                             (pr-str more))))
+                                     (i/sformat "Can't have %s: %s"
+                                       (if (neg? n)
+                                         "more than 1 variadic overload"
+                                         "2 overloads with same arity")
+                                       (pr-str more))))
                                  (if (neg? n)
-                                   (when (some #(< (:min-argc spec) %)
+                                   (when (some #(< (long (:min-argc spec)) (long %))
                                                (remove neg? (keys m)))
                                      (va-error))
                                    (when (and (contains? m variadic)
-                                              (> n (get m variadic)))
+                                              (> n (long (get m variadic))))
                                      (va-error)))
                                  (merge m {n spec})))
                              {} more)
@@ -328,7 +338,7 @@
                        (let [n (count args)
                              a @maps-atm
                              h #(let [spec (get m-bodies %)]
-                                  (binding [core/*error-handler* err-hand]
+                                  (binding [i/*error-handler* err-hand]
                                     (apply e-do
                                            (-> a
                                              (i-destructure (:args-vec spec) args)
@@ -340,35 +350,38 @@
                            (h n)
                            ;; variadic match
                            (and (contains? m-bodies variadic)
-                                (>= n (:min-argc (get m-bodies variadic))))
+                                (>= n (long (:min-argc (get m-bodies variadic)))))
                            (h variadic)
                            ;; no match
                            :otherwise
                            (err-hand
-                             (format "Wrong number of args (%d) passed to: %s"
-                                     n fn-name)))))]
+                             (i/sformat "Wrong number of args (%d) passed to: %s"
+                               n fn-name)))))]
         (swap! maps-atm (partial cons (i-destructure maps fn-name return-f)))
         return-f))))
 
 
-(def macros {:if-not   (core/make-evaluator e-if-not)
-             :when     (core/make-evaluator e-when)
-             :when-not (core/make-evaluator e-when-not)
-             :while    (core/make-evaluator e-while)
-             :let      (core/make-evaluator e-let)
-             :if-let   (core/make-evaluator e-if-let)
-             :when-let (core/make-evaluator e-when-let)
-             :for-each (core/make-evaluator e-for-each)
-             :cond     (core/make-evaluator e-cond)
-             :condp    (core/make-evaluator e-condp)
-             :case     (core/make-evaluator e-case)
-             :and      (core/make-evaluator e-and)
-             :or       (core/make-evaluator e-or)
-             :->       (core/make-evaluator e->)
-             :->>      (core/make-evaluator e->>)
-             :fn       (core/make-evaluator e-fn)
-             :fn*      (core/make-evaluator e-fn)
-             })
+(def macros (let [let-evaluator (core/make-evaluator e-let)
+                  fn-evaluator  (core/make-evaluator e-fn)]
+              {:if-not   (core/make-evaluator e-if-not)
+               :when     (core/make-evaluator e-when)
+               :when-not (core/make-evaluator e-when-not)
+               :while    (core/make-evaluator e-while)
+               :let      let-evaluator
+               :let*     let-evaluator
+               :if-let   (core/make-evaluator e-if-let)
+               :when-let (core/make-evaluator e-when-let)
+               :for-each (core/make-evaluator e-for-each)
+               :cond     (core/make-evaluator e-cond)
+               :condp    (core/make-evaluator e-condp)
+               :case     (core/make-evaluator e-case)
+               :and      (core/make-evaluator e-and)
+               :or       (core/make-evaluator e-or)
+               :->       (core/make-evaluator e->)
+               :->>      (core/make-evaluator e->>)
+               :fn       fn-evaluator
+               :fn*      fn-evaluator
+               }))
 
 
 ;;----- functions -----
@@ -380,5 +393,6 @@
 
 
 ;; ----- everything merged -----
+
 
 (def all (merge unsupported special-forms macros fns))
