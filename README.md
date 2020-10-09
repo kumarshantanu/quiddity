@@ -1,5 +1,7 @@
 # quiddity
 
+[![cljdoc badge](https://cljdoc.org/badge/quiddity/quiddity)](https://cljdoc.org/d/quiddity/quiddity)
+
 An [S-Expression](http://en.wikipedia.org/wiki/S-expression) evaluation library
 for Clojure and ClojureScript. Unlike Clojure's `eval`, _Quiddity_ lets you work
 with limited forms using user-specified _environment_.

@@ -20,7 +20,7 @@
   - [Todo] Stop evaluation
   - [Todo] Pause and resume evaluation
 - Documentation
-  - [Todo] Cljdoc badge
+  - Add Cljdoc badge
   - Reformat docstring for Cljdoc
   - [Todo] Include a documentation page
 
