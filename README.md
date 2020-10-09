@@ -7,13 +7,9 @@ with limited forms using user-specified _environment_.
 
 ## Usage
 
-On Clojars: https://clojars.org/quiddity
-
 Leiningen dependency: `[quiddity "0.3.0-SNAPSHOT"]`
 
-Supported Clojure versions: 1.2, 1.3, 1.4, 1.5
-
-Tested with lein-cljsbuild version: 0.2.8
+Supported versions: Clojure 1.7 or higher, ClojureScript 1.9 or higher
 
 
 ### Evaluation
@@ -113,37 +109,15 @@ The following evaluators are provided in `quiddity.lib/all` (map):
 
 ### Running tests
 
-Clean older stuff if any (required for ClojureScript testing)
-
+```shell
+lein do clean, test      # test against lowest supported Clojure version
+lein do clean, clj-test  # test against all supported Clojure versions
+lein do clean, cljs-test # test against all supported ClojureScript versions
 ```
-lein dev clean
-```
-
-Run the tests
-
-```
-lein dev test  # test with Clojure & ClojureScript (needs `phantomjs` installed)
-lein all test  # test with all supported Clojure versions
-```
-
-
-### Building a JAR (and installing to local repo)
-
-```
-lein jar     # create the JAR file
-lein install # install JAR to local Maven repo
-```
-
-
-## Getting in touch
-
-On Twitter: [@kumarshantanu](https://twitter.com/kumarshantanu)
-
-E-mail: kumar(dot)shantanu at gmail.com
 
 
 ## License
 
-Copyright © 2012 Shantanu Kumar
+Copyright © 2012-2020 Shantanu Kumar
 
 Distributed under the Eclipse Public License, the same as Clojure.

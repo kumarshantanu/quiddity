@@ -1,4 +1,7 @@
-(ns quiddity.core)
+(ns quiddity.core
+  #?(:cljs (:require
+             [goog.string :as gstring]
+             [goog.string.format])))
 
 
 (def ^{:dynamic true
@@ -16,8 +19,9 @@
                       (and (contains? m k)         [(get m k)])))
                 maps)]
     (if r (first r)
-      (*error-handler* (format "No such key '%s' in env keys %s" (str k)
-                               (pr-str (map keys maps)))))))
+      (*error-handler* (#?(:cljs gstring/format :clj format)
+                         "No such key '%s' in env keys %s" (str k)
+                         (pr-str (map keys maps)))))))
 
 
 (declare evaluate)

@@ -1,28 +1,31 @@
 (ns quiddity.lib-jvm-test
-  (:require [quiddity.core :as core]
-            [quiddity.lib  :as lib])
-  (:use [clip-test.testutil
-         :only [read-str re-quote throw-msg try-catch error-msg]])
-  (:use [clip-test.core
-         :only [deftest testing is]]))
+  (:require
+    [clojure.test :refer [deftest is testing]]
+    [quiddity.core :as quid]
+    [quiddity.lib  :as lib])
+  (:import
+    [clojure.lang ArityException ExceptionInfo]))
+
+
+(def read-str read-string)
 
 
 (defn es
   [form-str & maps] {:pre [(string? form-str)]}
-  (core/evaluate (read-str form-str) maps #(throw-msg %)))
+  (quid/evaluate (read-str form-str) maps #(throw (ex-info % {}))))
 
 
 (deftest test-unsupported
   (testing "def, var, binding"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `def`, `var`, `binding`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `def`, `var`, `binding`"
                           (es "#'a" lib/unsupported)) "#' shortcut for var")))
 
 
 (deftest test-arity-mismatch
   (testing "evaluator"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "Wrong number of args (2) passed to: lib$e-if")
+    (is (thrown-with-msg? ArityException
+                          #"Wrong number of args \(2\) passed to: (quiddity.)?lib/e-if"
                           (es "(if true)" lib/special-forms)))))
 
 

@@ -1,52 +1,73 @@
 (ns quiddity.lib-test
-  (:require [quiddity.core :as core]
-            [quiddity.lib  :as lib])
-  (:use [clip-test.testutil;*CLJSBUILD-REMOVE*;-cljs
-         :only [;*CLJSBUILD-REMOVE*;RuntimeException
-                read-str re-quote throw-msg try-catch error-msg]])
-  (:use;*CLJSBUILD-REMOVE*;-macros
-    [clip-test.core;*CLJSBUILD-REMOVE*;-cljs
-     :only [deftest testing is
-            ;*CLJSBUILD-REMOVE*;thrown? thrown-with-msg?
-            ]]))
+  (:require
+    #?(:cljs [cljs.test    :refer-macros [deftest is testing]]
+        :clj [clojure.test :refer        [deftest is testing]])
+    #?(:cljs [cljs.reader :refer [read-string]])
+    #?(:cljs [quiddity.core :as quid :include-macros true]
+        :clj [quiddity.core :as quid])
+    #?(:cljs [quiddity.lib  :as lib :include-macros true]
+        :clj [quiddity.lib  :as lib]))
+;  (:require [quiddity.core :as core]
+;            [quiddity.lib  :as lib])
+;  (:use [clip-test.testutil;*CLJSBUILD-REMOVE*;-cljs
+;         :only [;*CLJSBUILD-REMOVE*;RuntimeException
+;                read-str re-quote throw-msg try-catch error-msg]])
+;  (:use;*CLJSBUILD-REMOVE*;-macros
+;    [clip-test.core;*CLJSBUILD-REMOVE*;-cljs
+;     :only [deftest testing is
+;            ;*CLJSBUILD-REMOVE*;thrown? thrown-with-msg?
+;            ]])
+  #?(:clj (:import
+            [clojure.lang ExceptionInfo]))
+  )
+
+
+(defn read-str
+  [exp-str]
+  (read-string exp-str))
+
+
+(defn throw-msg
+  [msg]
+  (throw (ex-info msg {})))
 
 
 (defn es
   [form-str & maps] {:pre [(string? form-str)]}
-  (core/evaluate (read-str form-str) maps #(throw-msg %)))
+  (quid/evaluate (read-str form-str) maps #(throw-msg %)))
 
 
 (deftest test-unsupported
   (testing "assertion"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `assert`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `assert`"
                           (es "(assert true)" lib/unsupported)) "assert"))
   (testing "def, var, binding"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `def`, `var`, `binding`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `def`, `var`, `binding`"
                           (es "(def a 10)" lib/unsupported)) "def")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `def`, `var`, `binding`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `def`, `var`, `binding`"
                           (es "(var a)" lib/unsupported)) "var")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `def`, `var`, `binding`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `def`, `var`, `binding`"
                           (es "(binding [*a* 2] 1)" lib/unsupported)) "binding"))
   (testing "loop-recur"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `loop` and `recur`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `loop` and `recur`"
                           (es "(loop [i 0] recur i)" lib/unsupported)) "loop")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `loop` and `recur`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `loop` and `recur`"
                           (es "(recur 0)" lib/unsupported)) "recur"))
   (testing "try-catch-finally"
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `try`, `catch`, `finally`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `try`, `catch`, `finally`"
                           (es "(try)" lib/unsupported)) "try")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `try`, `catch`, `finally`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `try`, `catch`, `finally`"
                           (es "(catch)" lib/unsupported)) "catch")
-    (is (thrown-with-msg? RuntimeException
-                          (re-quote "No support for `try`, `catch`, `finally`")
+    (is (thrown-with-msg? ExceptionInfo
+                          #"No support for `try`, `catch`, `finally`"
                           (es "(finally)" lib/unsupported)) "finally")))
 
 
@@ -104,7 +125,7 @@
 
 (defn ds
   [local value]
-  (binding [core/*error-handler* throw-msg]
+  (binding [quid/*error-handler* throw-msg]
     (lib/i-destructure [] local value)))
 
 
@@ -134,12 +155,12 @@
     (is (= (let [[[a] [_]]           [[10] [20]]] {:a a})             (rds "[[a] [_]]"         [[10] [20]]))  "local var and placeholder")
     (is (= (let [[[_] [_]]           [[10] [20]]] {})                 (rds "[[_] [_]]"         [[10] [20]]))  "only placeholders")
     (is (= (let [[a b & [c]]         [10 20 30]]  {:a a :b b :c c})   (rds "[a b & [c]]"       [10 20 30]))   "local and opt vars")
-    (is (= (let [[:as [d]]           [10]]        {:d d})             (rds "[:as [d]]"         [10]))         "only :as")
-    (is (= (let [[[a] [b] :as [d]]   [[10] [20]]] {:a a :b b :d d})   (rds "[[a] [b] :as [d]]" [[10] [20]]))  "local vars and :as")
-    (is (= (let [[& [c] :as [d e]]   [10 20]]     {:c c :d d :e e})   (rds "[& [c] :as [d e]]" [10 20]))      "opt var and :as")
+    (is (= (let [[:as d]             [10]]        {:d d})             (rds "[:as d]"           [10]))         "only :as")
+    (is (= (let [[[a] [b] :as d]     [[10] [20]]] {:a a :b b :d d})   (rds "[[a] [b] :as d]"   [[10] [20]]))  "local vars and :as")
+    (is (= (let [[& [c] :as de]      [10 20]]     {:c c :de de})      (rds "[& [c] :as de]"    [10 20]))      "opt var and :as")
     (is (= (let [[[a] [b]
-                  & [c] :as [d e]]   [[10] [20] [30]]] {:a a :b b :c c
-                                                        :d d :e e})   (rds "[[a] [b] & [c] :as [d e]]"
+                  & [c] :as de]      [[10] [20] [30]]] {:a a :b b :c c
+                                                        :de de})      (rds "[[a] [b] & [c] :as de]"
                                                                            [[10] [20] [30]]))                    "local vars, opt var and :as")
     (is (= (let [[a {b :b}]          [10 {:b 20}]]  {:a a :b b})      (rds "[a {b :b}]"          [10 {:b 20}]))  "local var and value lookup (map)")
     (is (= (let [[a {:keys [b]}]     [10 {:b 20}]]  {:a a :b b})      (rds "[a {:keys [b]}]"     [10 {:b 20}]))  "local var and :keys (map)"))
@@ -502,7 +523,7 @@
 
 (deftest test-macro-equiv-condp
   (testing "condp (no clauses)"
-    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+    (is (thrown-with-msg? ExceptionInfo #"No matching clause: 1"
                           (es "(condp = 1)" {:= =} lib/macros)) "no clauses"))
   (testing "condp (constant test and value)"
     (is (= (condp = 1 1 1)         (es "(condp = 1 1 1)"         {:= =} lib/macros)) "matching")
@@ -541,9 +562,9 @@
 
 (deftest test-macro-equiv-case
   (testing "case (no match)"
-    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+    (is (thrown-with-msg? ExceptionInfo #"No matching clause: 1"
                           (es "(case 1)"     lib/macros))   "no clauses")
-    (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+    (is (thrown-with-msg? ExceptionInfo #"No matching clause: 1"
                           (es "(case 1 2 2)" lib/macros))   "no match, no default"))
   (testing "case (match)"
     (is (= (case 1       1 1)       (es "(case 1 1 1)"             lib/macros))        "const matching value-constant")
@@ -556,9 +577,9 @@
     (is (= (case 1
              (2 3) 2
              (1 4) 4)               (es "(case 1 (2 3) 2 (1 4) 4)" lib/macros))        "const non-matching list, matching list")
-    (is (= (case ()
-             ()   1
-             (()) 2)                (es "(case () () 1 (()) 2)"    lib/macros))        "non-matching const, matching list"))
+    #_(is (= (case ()  ; this form throws NullPointerException in CLJS when macroexpanding
+              ()   1
+              (()) 2)                (es "(case () () 1 (()) 2)"    lib/macros))        "non-matching const, matching list"))
   (testing "case (side effects)"
     (let [a1 (atom 0)
           a2 (atom 0)
@@ -566,7 +587,7 @@
           f2 #(swap! a2 inc)
           ra #(do (reset! a1 0) (reset! a2 0))
           fs {:f1 f1 :f2 f2 := =}]
-      (is (thrown-with-msg? RuntimeException (re-quote "No matching clause: 1")
+      (is (thrown-with-msg? ExceptionInfo #"No matching clause: 1"
                             (es "(case 1 2 (f1))" fs lib/macros)) "non-matching")
       (is (= 0 @a1))
       (ra)
@@ -676,24 +697,24 @@
     (is (= 6 (es "(apply (fn sum [a] (if (> a 0) (+ a (sum (dec a))) a)) [3])"
                  lib/all {:> > :+ + :apply apply :dec dec})) "fn in an expression"))
   (testing "malformed fns, unhappy tests"
-    (is (thrown-with-msg? RuntimeException (re-quote "Expected arg vector, found :e")
+    (is (thrown-with-msg? ExceptionInfo #"Expected arg vector, found :e"
                           (es "(fn :e)" lib/all)) "missing arg vector")
     (let [f (es "(fn [:e])" lib/all)]
-      (is (thrown-with-msg? RuntimeException (re-quote "Unsupported binding form: :e")
+      (is (thrown-with-msg? ExceptionInfo #"Unsupported binding form: :e"
                             (f 10)) "invalid binding form"))
     (let [f (es "(fn [a] b)" lib/all)]
-      (is (thrown-with-msg? RuntimeException #"No such key 'b' in env keys.*"
+      (is (thrown-with-msg? ExceptionInfo #"No such key 'b' in env keys.*"
                             (f 10)) "undefined symbol")))
   (testing "arity/overload errors, unhappy tests"
-    (is (thrown-with-msg? RuntimeException #"Can't have 2 overloads with same arity.*"
+    (is (thrown-with-msg? ExceptionInfo #"Can't have 2 overloads with same arity.*"
                           (es "(fn ([] :a)([] :b))" lib/all)) "2 overloads with arity 0")
-    (is (thrown-with-msg? RuntimeException #"Can't have 2 overloads with same arity.*"
+    (is (thrown-with-msg? ExceptionInfo #"Can't have 2 overloads with same arity.*"
                           (es "(fn ([a] a)([b] b))" lib/all)) "2 overloads with arity 1")
-    (is (thrown-with-msg? RuntimeException #"Can't have more than 1 variadic overload.*"
+    (is (thrown-with-msg? ExceptionInfo #"Can't have more than 1 variadic overload.*"
                           (es "(fn ([& c])([& c]))" lib/all)) "zero fixed and 2 variadic overload")
-    (is (thrown-with-msg? RuntimeException #"Can't have more than 1 variadic overload.*"
+    (is (thrown-with-msg? ExceptionInfo #"Can't have more than 1 variadic overload.*"
                           (es "(fn ([a & c])([b & c]))" lib/all)) "one fixed and 2 variadic overload")
-    (is (thrown-with-msg? RuntimeException (re-quote "Can't have fixed arity function with more params than variadic function")
+    (is (thrown-with-msg? ExceptionInfo #"Can't have fixed arity function with more params than variadic function"
                           (es "(fn ([a c])([b & c]))" lib/all)) "one fixed fn with more params than variadic function")))
 
 

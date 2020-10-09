@@ -1,5 +1,8 @@
 (ns quiddity.lib
-  (:require [quiddity.core :as core]))
+  (:require
+    #?(:cljs [goog.string :as gstring])
+    #?(:cljs [goog.string.format])
+    [quiddity.core :as core]))
 
 
 ;;----- evaluators | unsupported | special forms and macros that use them -----
@@ -309,11 +312,12 @@
                                (let [[n spec] (split-fn decl)]
                                  (when (contains? m n)
                                    (err-hand
-                                     (format "Can't have %s: %s"
-                                             (if (neg? n)
-                                               "more than 1 variadic overload"
-                                               "2 overloads with same arity")
-                                             (pr-str more))))
+                                     (#?(:cljs gstring/format :clj format)
+                                       "Can't have %s: %s"
+                                       (if (neg? n)
+                                         "more than 1 variadic overload"
+                                         "2 overloads with same arity")
+                                       (pr-str more))))
                                  (if (neg? n)
                                    (when (some #(< (:min-argc spec) %)
                                                (remove neg? (keys m)))
@@ -345,8 +349,9 @@
                            ;; no match
                            :otherwise
                            (err-hand
-                             (format "Wrong number of args (%d) passed to: %s"
-                                     n fn-name)))))]
+                             (#?(:cljs gstring/format :clj format)
+                               "Wrong number of args (%d) passed to: %s"
+                               n fn-name)))))]
         (swap! maps-atm (partial cons (i-destructure maps fn-name return-f)))
         return-f))))
 
