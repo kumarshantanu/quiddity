@@ -9,6 +9,7 @@
 
 (ns quiddity.lib-jvm-test
   (:require
+    [clojure.edn :as edn]
     [clojure.test :refer [deftest is testing]]
     [quiddity.core :as quid]
     [quiddity.lib  :as lib])
@@ -62,6 +63,14 @@
           (quid/evaluate eform [lib/all])))))
 
 
+(deftest test-edn-reader
+  (let [sform (edn/read-string "(or 5 (* 3 4))")
+        eform (macroexpand sform)]
+    (is (= 5
+          (quid/evaluate sform [lib/all])
+          (quid/evaluate eform [lib/all])))))
+
+
 (deftest test-stop-evaluation
   (let [sleep #(Thread/sleep (long %))
         form (read-string "(do (sleep 100) 50 (sleep 1000) 5)")
@@ -79,4 +88,5 @@
   (test-arity-mismatch)
   (test-macro-equiv-anonymous-fn)
   (test-macroexpand)
+  (test-edn-reader)
   (test-stop-evaluation))
