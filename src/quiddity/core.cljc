@@ -8,6 +8,7 @@
 
 
 (ns quiddity.core
+  "Core evaluation functions."
   (:require
     [quiddity.internal :as i]))
 
@@ -19,6 +20,8 @@
 
 
 (defn env-get
+  "Look up the given key in a collection of supplied maps, and return the value. Absence of the key in all maps amounts
+  to an error."
   [k maps]
   (let [r (some (fn [m]
                   (or (and (symbol? k)
@@ -35,6 +38,7 @@
 
 
 (defn realize-coll
+  "Evaluate elements in given collection using the supplied environment maps."
   [form maps]
   (if (map? form)
     (let [ks (realize-coll (keys form) maps)
@@ -48,12 +52,14 @@
 
 
 (defn evaluator?
+  "Return `true` if given argument is an evaluator, `false` otherwise."
   [f]
   (and (vector? f)
        (true? (:quiddity-evaluator? (meta f)))))
 
 
 (defn make-evaluator
+  "Create a tagged evaluator."
   [x]
   (if (evaluator? x) x
     (->> {:quiddity-evaluator? true}
@@ -61,7 +67,7 @@
 
 
 (defn evaluate
-  "Evaluate S-expression using specified env `maps`"
+  "Evaluate S-expression using specified env maps."
   ([form maps]
     {:pre [(every? map? maps)]}
     (cond

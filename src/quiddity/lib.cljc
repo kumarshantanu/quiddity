@@ -8,6 +8,7 @@
 
 
 (ns quiddity.lib
+  "Library of pre-built functions and evaluators. Useful for providing an evaluation 'environment'."
   (:require
     [quiddity.core :as core]
     [quiddity.internal :as i]))

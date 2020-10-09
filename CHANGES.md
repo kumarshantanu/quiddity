@@ -11,6 +11,7 @@
   * `catch`
   * `finally`
 
+
 ## [WIP] 0.3.0 / 2020-October-??
 
 - Compatibility with recent Clojure/Script versions
@@ -20,7 +21,7 @@
   - [Todo] Pause and resume evaluation
 - Documentation
   - [Todo] Cljdoc badge
-  - [Todo] Reformat docstring for Cljdoc
+  - Reformat docstring for Cljdoc
   - [Todo] Include a documentation page
 
 
