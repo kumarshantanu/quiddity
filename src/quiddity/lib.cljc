@@ -9,9 +9,8 @@
 
 (ns quiddity.lib
   (:require
-    #?(:cljs [goog.string :as gstring])
-    #?(:cljs [goog.string.format])
-    [quiddity.core :as core]))
+    [quiddity.core :as core]
+    [quiddity.internal :as i]))
 
 
 ;;----- evaluators | unsupported | special forms and macros that use them -----
@@ -321,8 +320,7 @@
                                (let [[n spec] (split-fn decl)]
                                  (when (contains? m n)
                                    (err-hand
-                                     (#?(:cljs gstring/format :clj format)
-                                       "Can't have %s: %s"
+                                     (i/sformat "Can't have %s: %s"
                                        (if (neg? n)
                                          "more than 1 variadic overload"
                                          "2 overloads with same arity")
@@ -358,8 +356,7 @@
                            ;; no match
                            :otherwise
                            (err-hand
-                             (#?(:cljs gstring/format :clj format)
-                               "Wrong number of args (%d) passed to: %s"
+                             (i/sformat "Wrong number of args (%d) passed to: %s"
                                n fn-name)))))]
         (swap! maps-atm (partial cons (i-destructure maps fn-name return-f)))
         return-f))))
