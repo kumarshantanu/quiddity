@@ -315,7 +315,8 @@
                                              :min-argc n
                                              :body body}]))
             m-bodies (reduce (fn [m decl]
-                               (let [[n spec] (split-fn decl)]
+                               (let [[n spec] (split-fn decl)
+                                     n (long n)]
                                  (when (contains? m n)
                                    (err-hand
                                      (i/sformat "Can't have %s: %s"
@@ -324,11 +325,11 @@
                                          "2 overloads with same arity")
                                        (pr-str more))))
                                  (if (neg? n)
-                                   (when (some #(< (:min-argc spec) %)
+                                   (when (some #(< (long (:min-argc spec)) (long %))
                                                (remove neg? (keys m)))
                                      (va-error))
                                    (when (and (contains? m variadic)
-                                              (> n (get m variadic)))
+                                              (> n (long (get m variadic))))
                                      (va-error)))
                                  (merge m {n spec})))
                              {} more)
@@ -349,7 +350,7 @@
                            (h n)
                            ;; variadic match
                            (and (contains? m-bodies variadic)
-                                (>= n (:min-argc (get m-bodies variadic))))
+                                (>= n (long (:min-argc (get m-bodies variadic)))))
                            (h variadic)
                            ;; no match
                            :otherwise
