@@ -13,6 +13,7 @@
     [quiddity.core :as quid]
     [quiddity.lib  :as lib])
   (:import
+    [java.util.concurrent ExecutionException]
     [clojure.lang ArityException ExceptionInfo]))
 
 
@@ -61,9 +62,21 @@
           (quid/evaluate eform [lib/all])))))
 
 
+(deftest test-stop-evaluation
+  (let [sleep #(Thread/sleep (long %))
+        form (read-string "(do (sleep 100) 50 (sleep 1000) 5)")
+        flag (volatile! false)
+        exec (future (quid/evaluate form [lib/all {:sleep sleep}] {:stop-evaluation? flag}))]
+    (sleep 50)
+    (vreset! flag true)
+    (is (thrown? ExecutionException
+          @exec))))
+
+
 (defn test-ns-hook
   []
   (test-unsupported)
   (test-arity-mismatch)
   (test-macro-equiv-anonymous-fn)
-  (test-macroexpand))
+  (test-macroexpand)
+  (test-stop-evaluation))
