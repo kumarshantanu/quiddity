@@ -361,24 +361,27 @@
         return-f))))
 
 
-(def macros {:if-not   (core/make-evaluator e-if-not)
-             :when     (core/make-evaluator e-when)
-             :when-not (core/make-evaluator e-when-not)
-             :while    (core/make-evaluator e-while)
-             :let      (core/make-evaluator e-let)
-             :if-let   (core/make-evaluator e-if-let)
-             :when-let (core/make-evaluator e-when-let)
-             :for-each (core/make-evaluator e-for-each)
-             :cond     (core/make-evaluator e-cond)
-             :condp    (core/make-evaluator e-condp)
-             :case     (core/make-evaluator e-case)
-             :and      (core/make-evaluator e-and)
-             :or       (core/make-evaluator e-or)
-             :->       (core/make-evaluator e->)
-             :->>      (core/make-evaluator e->>)
-             :fn       (core/make-evaluator e-fn)
-             :fn*      (core/make-evaluator e-fn)
-             })
+(def macros (let [let-evaluator (core/make-evaluator e-let)
+                  fn-evaluator  (core/make-evaluator e-fn)]
+              {:if-not   (core/make-evaluator e-if-not)
+               :when     (core/make-evaluator e-when)
+               :when-not (core/make-evaluator e-when-not)
+               :while    (core/make-evaluator e-while)
+               :let      let-evaluator
+               :let*     let-evaluator
+               :if-let   (core/make-evaluator e-if-let)
+               :when-let (core/make-evaluator e-when-let)
+               :for-each (core/make-evaluator e-for-each)
+               :cond     (core/make-evaluator e-cond)
+               :condp    (core/make-evaluator e-condp)
+               :case     (core/make-evaluator e-case)
+               :and      (core/make-evaluator e-and)
+               :or       (core/make-evaluator e-or)
+               :->       (core/make-evaluator e->)
+               :->>      (core/make-evaluator e->>)
+               :fn       fn-evaluator
+               :fn*      fn-evaluator
+               }))
 
 
 ;;----- functions -----
