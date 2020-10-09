@@ -53,8 +53,17 @@
         "anonymous fn in an expression")))
 
 
+(deftest test-macroexpand
+  (let [sform (read-str "(or 5 (* 3 4))")
+        eform (macroexpand sform)]
+    (is (= 5
+          (quid/evaluate sform [lib/all])
+          (quid/evaluate eform [lib/all])))))
+
+
 (defn test-ns-hook
   []
   (test-unsupported)
   (test-arity-mismatch)
-  (test-macro-equiv-anonymous-fn))
+  (test-macro-equiv-anonymous-fn)
+  (test-macroexpand))
