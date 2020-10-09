@@ -17,25 +17,22 @@
 ;;----- evaluators | unsupported | special forms and macros that use them -----
 
 
-(defn no-support-for
-  [msg] {:pre [(string? msg)]}
-  (core/make-evaluator (fn [& _]
-                         (core/*error-handler* (str "No support for " msg)))))
-
-
-(def unsupported {;; assertion
-                  :assert  (no-support-for "`assert`")
-                  ;; def, var, binding
-                  :binding (no-support-for "`def`, `var`, `binding`")
-                  :def     (no-support-for "`def`, `var`, `binding`")
-                  :var     (no-support-for "`def`, `var`, `binding`")
-                  ;; loop, recur
-                  :loop    (no-support-for "`loop` and `recur`")
-                  :recur   (no-support-for "`loop` and `recur`")
-                  ;; try, catch, finally
-                  :try     (no-support-for "`try`, `catch`, `finally`")
-                  :catch   (no-support-for "`try`, `catch`, `finally`")
-                  :finally (no-support-for "`try`, `catch`, `finally`")})
+(def unsupported (let [no-support-for (fn [msg]
+                                        (core/make-evaluator (fn [& _]
+                                                               (core/*error-handler* (str "No support for " msg)))))]
+                   {;; assertion
+                    :assert  (no-support-for "`assert`")
+                    ;; def, var, binding
+                    :binding (no-support-for "`def`, `var`, `binding`")
+                    :def     (no-support-for "`def`, `var`, `binding`")
+                    :var     (no-support-for "`def`, `var`, `binding`")
+                    ;; loop, recur
+                    :loop    (no-support-for "`loop` and `recur`")
+                    :recur   (no-support-for "`loop` and `recur`")
+                    ;; try, catch, finally
+                    :try     (no-support-for "`try`, `catch`, `finally`")
+                    :catch   (no-support-for "`try`, `catch`, `finally`")
+                    :finally (no-support-for "`try`, `catch`, `finally`")}))
 
 
 ;;----- evaluators | special forms | http://clojure.org/special_forms -----
