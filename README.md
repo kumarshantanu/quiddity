@@ -9,7 +9,7 @@ with limited forms using user-specified _environment_.
 
 ## Usage
 
-Leiningen dependency: `[quiddity "0.3.0-SNAPSHOT"]`
+Leiningen dependency: `[quiddity "0.3.0"]`
 
 Supported versions: Clojure 1.7 or higher, ClojureScript 1.9 or higher
 

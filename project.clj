@@ -1,4 +1,4 @@
-(defproject quiddity "0.3.0-SNAPSHOT"
+(defproject quiddity "0.3.0"
   :description "An S-Expression evaluation library for Clojure and ClojureScript"
   :url "https://github.com/kumarshantanu/quiddity"
   :license {:name "Eclipse Public License"

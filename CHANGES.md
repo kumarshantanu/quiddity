@@ -12,7 +12,7 @@
   * `finally`
 
 
-## [WIP] 0.3.0 / 2020-October-??
+## 0.3.0 / 2020-October-09
 
 - Compatibility with recent Clojure/Script versions
 - [BREAKING CHANGE] Drop support for Clojure 1.6 and earlier
