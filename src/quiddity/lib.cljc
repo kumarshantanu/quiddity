@@ -275,7 +275,7 @@
         (recur (if (or (list? form-1) (seq? form-1))
                  (let [[f & args] form-1]
                    (apply (core/evaluate f maps) value
-                          (core/realize-coll args maps)))
+                          (i/realize-coll args maps core/evaluate)))
                  ((core/evaluate form-1 maps) value))
                more)))))
 
@@ -291,7 +291,7 @@
         (recur (if (or (list? form-1) (seq? form-1))
                  (let [[f & args] form-1]
                    (apply (core/evaluate f maps)
-                          (concat (core/realize-coll args maps) [value])))
+                          (concat (i/realize-coll args maps core/evaluate) [value])))
                  ((core/evaluate form-1 maps) value))
                more)))))
 

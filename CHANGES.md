@@ -16,6 +16,7 @@
 
 - Compatibility with recent Clojure/Script versions
 - [BREAKING CHANGE] Drop support for Clojure 1.6 and earlier
+- [BREAKING CHANGE] Move `quiddity.core/realize-coll` to internal namespace
 - Lifecycle control
   - [Todo] Stop evaluation
   - [Todo] Pause and resume evaluation

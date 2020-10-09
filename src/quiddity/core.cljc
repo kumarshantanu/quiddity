@@ -34,23 +34,6 @@
                          (pr-str (map keys maps)))))))
 
 
-(declare evaluate)
-
-
-(defn realize-coll
-  "Evaluate elements in given collection using the supplied environment maps."
-  [form maps]
-  (if (map? form)
-    (let [ks (realize-coll (keys form) maps)
-          vs (realize-coll (vals form) maps)]
-      (zipmap ks vs))
-    (let [coll-fn (cond
-                    (vector? form) vec
-                    (set? form)    set
-                    :otherwise     (partial apply list))]
-      (coll-fn (map #(evaluate % maps) form)))))
-
-
 (defn evaluator?
   "Return `true` if given argument is an evaluator, `false` otherwise."
   [f]
@@ -80,9 +63,9 @@
                               tail (rest form)]
                           (if (evaluator? func)
                             (apply (first func) maps tail)
-                            (apply func (realize-coll tail maps))))
+                            (apply func (i/realize-coll tail maps evaluate))))
       ;; any collection
-      (coll? form)      (realize-coll form maps)
+      (coll? form)      (i/realize-coll form maps evaluate)
       ;; constant
       :otherwise        form))
   ([form maps error-handler]
